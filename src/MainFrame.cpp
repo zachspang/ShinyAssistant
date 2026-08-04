@@ -3,6 +3,37 @@
 #include <wx/wx.h>
 
 MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
+/*
+    
+    MainFrame children layout. Os are individual widgets, panels contain a sizer that aranges the widgets inside them.
+
+                leftPanel                       rightPanel    
+    ┌───────────────────────────┬───────────────────────────────────────┐
+    │                           │                                       │
+    │                           │                   O                   │
+    │                           │                   O                   │
+    │            O              │                                       │
+    │                           │              spritePanel              │
+    │                           │  ┌──────────────────┬────────────────┐│
+    │            O              │  │         O        │       O        ││
+    │                           │  ├──────────────────┼────────────────┤│
+    │                           │  │         O        │       O        ││
+    │                           │  ├──────────────────┼────────────────┤│
+    │                           │  │         O        │       O        ││
+    │            O              │  ├──────────────────┼────────────────┤│
+    │                           │  │         O        │       O        ││
+    │                           │  └──────────────────┴────────────────┘│
+    │                           │                    O                  │
+    │                           │                    O                  │
+    |                           |                    O                  |
+    │                           │                  ipPanel              │
+    │                           │  ┌─────────────────┬─────────────────┐│
+    │                           │  │         O       │        O        ││
+    │                           │  └─────────────────┴─────────────────┘│
+    └───────────────────────────┴───────────────────────────────────────┘
+    
+*/
+
     wxInitAllImageHandlers();
 
     //Panels splitting gui into left and right halves
@@ -38,11 +69,11 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     leftSizer->Add(webcamChoice, wxSizerFlags().Center().Shaped());
     leftSizer->AddSpacer(20);
     leftSizer->Add(videoBitmap, wxSizerFlags().Expand().Shaped().Border(wxALL, 10).Center());
-    leftSizer->AddSpacer(20);
     leftSizer->Add(encounterCounter, wxSizerFlags().CenterHorizontal().Border(wxLEFT|wxRIGHT, 5));
     
     
     leftPanel->SetSizer(leftSizer);
+    leftSizer->SetSizeHints(leftPanel);
     ///
     //End of Left Children
     //
@@ -63,6 +94,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     rightSizer->Add(speciesChoice, wxSizerFlags().Center());
 
     rightPanel->SetSizer(rightSizer);
+    rightSizer->SetSizeHints(rightPanel);
     //
     //End of Right Children
     //
