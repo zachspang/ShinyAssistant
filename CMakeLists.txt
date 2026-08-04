@@ -11,7 +11,7 @@ set(CMAKE_RC_COMPILE_OBJECT
 
 # --- wxWidgets (shared MSYS2 install) ---
 set(wxWidgets_ROOT_DIR "C:/msys64/mingw64")
-find_package(wxWidgets REQUIRED COMPONENTS core base)
+find_package(wxWidgets REQUIRED COMPONENTS core base net)
 include(${wxWidgets_USE_FILE})
 
 # --- ViGEmClient (static) ---
@@ -23,10 +23,19 @@ target_include_directories(ViGEmClient PUBLIC
 )
 target_link_libraries(ViGEmClient PRIVATE setupapi)
 
-# --- Main app ---
+# --- Main app (auto-glob sources under src/) ---
+file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/src/*.cpp"
+)
+
 add_executable(ShinyAssistant WIN32
-    src/main.cpp
+    ${APP_SOURCES}
     app.rc
+)
+
+# include from anywhere under src/
+target_include_directories(ShinyAssistant PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
 )
 
 target_link_libraries(ShinyAssistant PRIVATE
@@ -34,7 +43,6 @@ target_link_libraries(ShinyAssistant PRIVATE
     ${wxWidgets_LIBRARIES}
     ViGEmClient
     -Wl,--end-group
-    xinput9_1_0
 )
 
 set_target_properties(ShinyAssistant PROPERTIES
