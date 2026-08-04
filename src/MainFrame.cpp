@@ -3,37 +3,6 @@
 #include <wx/wx.h>
 
 MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
-/*
-    
-    MainFrame children layout. Os are individual widgets, panels contain a sizer that aranges the widgets inside them.
-
-                leftPanel                       rightPanel    
-    ┌───────────────────────────┬───────────────────────────────────────┐
-    │                           │                                       │
-    │                           │                   O                   │
-    │                           │                   O                   │
-    │            O              │                                       │
-    │                           │              spritePanel              │
-    │                           │  ┌──────────────────┬────────────────┐│
-    │            O              │  │         O        │       O        ││
-    │                           │  ├──────────────────┼────────────────┤│
-    │                           │  │         O        │       O        ││
-    │                           │  ├──────────────────┼────────────────┤│
-    │                           │  │         O        │       O        ││
-    │            O              │  ├──────────────────┼────────────────┤│
-    │                           │  │         O        │       O        ││
-    │                           │  └──────────────────┴────────────────┘│
-    │                           │                    O                  │
-    │                           │                    O                  │
-    |                           |                    O                  |
-    │                           │                  ipPanel              │
-    │                           │  ┌─────────────────┬─────────────────┐│
-    │                           │  │         O       │        O        ││
-    │                           │  └─────────────────┴─────────────────┘│
-    └───────────────────────────┴───────────────────────────────────────┘
-    
-*/
-
     wxInitAllImageHandlers();
 
     //Panels splitting gui into left and right halves
