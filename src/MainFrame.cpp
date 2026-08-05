@@ -80,7 +80,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     deviceIPSizer->Add(deviceIPLabel, wxSizerFlags().CenterVertical());
     deviceIPSizer->Add(m_deviceIPCtrl, wxSizerFlags().CenterVertical());
     deviceIPSizer->Add(m_deviceIPConfirm, wxSizerFlags().CenterVertical().Border(wxALL,5));
-    m_deviceIPConfirm->Bind(wxEVT_SPINCTRL, &MainFrame::OnIPConfirm, this);
+    m_deviceIPConfirm->Bind(wxEVT_BUTTON, &MainFrame::OnIPConfirm, this);
     m_deviceIPConfirm->Enable(false);
 
     rightSizer->AddSpacer(20);
