@@ -14,6 +14,10 @@ set(wxWidgets_ROOT_DIR "C:/msys64/mingw64")
 find_package(wxWidgets REQUIRED COMPONENTS core base net)
 include(${wxWidgets_USE_FILE})
 
+# --- OpenCV (shared MSYS2 install) ---
+set(OpenCV_DIR "C:/msys64/mingw64/lib/cmake/opencv4")
+find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio highgui)
+
 # --- ViGEmClient (static) ---
 add_library(ViGEmClient STATIC
     third_party/ViGEmClient/src/ViGEmClient.cpp
@@ -36,11 +40,13 @@ add_executable(ShinyAssistant WIN32
 # include from anywhere under src/
 target_include_directories(ShinyAssistant PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+    ${OpenCV_INCLUDE_DIRS}
 )
 
 target_link_libraries(ShinyAssistant PRIVATE
     -Wl,--start-group
     ${wxWidgets_LIBRARIES}
+    ${OpenCV_LIBS}
     ViGEmClient
     -Wl,--end-group
 )
