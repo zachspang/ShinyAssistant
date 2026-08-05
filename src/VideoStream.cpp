@@ -7,8 +7,8 @@ VideoStream::VideoStream(){
 }
 
 void VideoStream::StartCapture() {
-    std::cerr << "VideoStream Instantiated" << std::endl;
-    cv::VideoCapture cap(0); // default camera
+    std::cout << "VideoStream Instantiated" << std::endl;
+    cv::VideoCapture cap(0, cv::CAP_DSHOW); // default camera
     if (!cap.isOpened()) {
         std::cerr << "ERROR: Could not open camera." << std::endl;
         return;
@@ -19,16 +19,18 @@ void VideoStream::StartCapture() {
               << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
 
     cv::Mat frame;
-    cap >> frame;
+    while (true) {
+        cap >> frame;
 
-    if (frame.empty()) {
-        std::cerr << "ERROR: Captured frame is empty." << std::endl;
-        return;
+        if (frame.empty()) {
+            std::cerr << "ERROR: Captured frame is empty." << std::endl;
+            break;
+        }
+
+        cv::imshow("OpenCV Test - press 'q' to quit", frame);
+
+        if (cv::waitKey(1) == 'q') {
+            break;
+        }
     }
-
-    std::cout << "Captured frame: " << frame.cols << "x" << frame.rows
-              << ", channels=" << frame.channels() << std::endl;
-
-    cv::imshow("OpenCV Test - press any key to close", frame);
-    cv::waitKey(0);
 }
