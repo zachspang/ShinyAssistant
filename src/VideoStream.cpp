@@ -11,7 +11,7 @@ void VideoStream::StartCapture() {
     std::cout << "Starting capture" << std::endl;
 
     std::thread capThread([this]() {
-        cv::VideoCapture cap(1);
+        cv::VideoCapture cap(1, cv::CAP_DSHOW);
         cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
         cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
 
@@ -28,25 +28,31 @@ void VideoStream::StartCapture() {
         }
 
         std::cout << "Camera opened: " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x" << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
-        double fps = 0.0;
+        auto lastFpsTime = std::chrono::steady_clock::now();
+        double currentFps = 0.0;
 
         while (true) {
-            double start = static_cast<double>(cv::getTickCount());
-
             cv::Mat tempFrame;
             bool readOk = cap.read(tempFrame);
             if (!readOk || tempFrame.empty()) continue;
 
-            double current_fps = cv::getTickFrequency() / (static_cast<double>(cv::getTickCount()) - start);
-            // Smoothing
-            fps = (fps == 0.0) ? current_fps : (fps * 0.9 + current_fps * 0.1);
-            std::string fps_text = "FPS: " + std::to_string(static_cast<int>(fps));
-            cv::putText(tempFrame, fps_text, cv::Point(30, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+            // Measure actual time since the previous accepted frame
+            auto now = std::chrono::steady_clock::now();
+            double deltaSec = std::chrono::duration<double>(now - lastFpsTime).count();
+            lastFpsTime = now;
+            if (deltaSec > 0.0) {
+                double instantFps = 1.0 / deltaSec;
+                currentFps = (currentFps == 0.0) ? instantFps : (currentFps * 0.9 + instantFps * 0.1);
+            }
+
+            cv::putText(tempFrame, cv::format("FPS: %.1f", currentFps), cv::Point(10, 150), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
 
             {
                 std::lock_guard<std::mutex> lock(m_frameMutex);
                 m_frame = tempFrame;
             }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
             //cv::imshow("OpenCV debug view", m_frame);
             //cv::waitKey(1);
