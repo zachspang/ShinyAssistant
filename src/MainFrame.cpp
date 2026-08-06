@@ -1,10 +1,15 @@
 #include "MainFrame.h"
-#include "ScaledStaticBitmap.h"
+#include "ScaledBitmap.h"
+#include "VideoStream.h"
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
+#include <iostream>
 
 MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxInitAllImageHandlers();
+
+    m_videoStream = new VideoStream();
+    m_videoStream->StartCapture();
 
     //Panels splitting gui into left and right halves
 
@@ -25,9 +30,11 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     webcams.Add("webcam 2");
     wxChoice* webcamChoice = new wxChoice(leftPanel, wxID_ANY, wxDefaultPosition, wxSize(100, 40), webcams);
 
-    //TODO: Temp image to represent area where video stream would go
-    ScaledStaticBitmap* videoBitmap = new ScaledStaticBitmap(leftPanel, "C:/Users/spang/Desktop/Projects/ShinyAssistant/battletemp.png");
-    
+    m_videoBitmap = new ScaledBitmap(leftPanel, "C:/Users/spang/Desktop/Projects/ShinyAssistant/battletemp.png");
+    m_videoTimer = new wxTimer();
+    m_videoTimer->Bind(wxEVT_TIMER, &MainFrame::UpdateVideo, this);
+    bool started = m_videoTimer->Start(33);
+
     m_encounterCounter = new wxStaticText(leftPanel, wxID_ANY, "Encounters: 100000", wxDefaultPosition, wxDefaultSize, wxBORDER_RAISED | wxST_ELLIPSIZE_START);
     auto font = m_encounterCounter->GetFont();
     font.SetPixelSize(wxSize(0,40));
@@ -38,7 +45,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     leftSizer->AddSpacer(20);
     leftSizer->Add(webcamChoice, wxSizerFlags().Center().Shaped());
     leftSizer->AddSpacer(20);
-    leftSizer->Add(videoBitmap, wxSizerFlags().Expand().Shaped().Border(wxALL, 10).Center());
+    leftSizer->Add(m_videoBitmap, wxSizerFlags().Expand().Shaped().Border(wxALL, 10).Center());
     leftSizer->Add(m_encounterCounter, wxSizerFlags().CenterHorizontal().Border(wxLEFT|wxRIGHT, 5));
     
     
@@ -127,4 +134,8 @@ void MainFrame::OnIPConfirm(wxCommandEvent& evt){
     //TODO: attempt to connect based on output mode
     wxString port = ":1234";
     wxMessageBox(wxString::Format("Attempting to connect to %s%s", m_deviceIP, port));
+}
+
+void MainFrame::UpdateVideo(wxTimerEvent& evt){
+    m_videoBitmap->SetImage(m_videoStream->GetWxImageFromFrame());
 }

@@ -2,7 +2,6 @@
 #include "MainFrame.h"
 #include "VideoStream.h"
 #include <wx/wx.h>
-#include <thread>
 #include <windows.h>
 
 wxIMPLEMENT_APP(App);
@@ -12,9 +11,7 @@ bool App::OnInit() {
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
     }
-
-    std::thread([]() { VideoStream vs; }).detach();
-
+    
     MainFrame* mainFrame = new MainFrame("ShinyAssistant");
     mainFrame->SetClientSize(800, 450);
     mainFrame->Center();
