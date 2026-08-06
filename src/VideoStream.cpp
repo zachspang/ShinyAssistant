@@ -11,7 +11,7 @@ void VideoStream::StartCapture() {
     std::cout << "Starting capture" << std::endl;
 
     std::thread capThread([this]() {
-        cv::VideoCapture cap(0);
+        cv::VideoCapture cap(1);
         cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
         cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
 
@@ -28,12 +28,20 @@ void VideoStream::StartCapture() {
         }
 
         std::cout << "Camera opened: " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x" << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
-        
-        //while (true) {
-        for (int i=0; i < 1200; i++){
+        double fps = 0.0;
+
+        while (true) {
+            double start = static_cast<double>(cv::getTickCount());
+
             cv::Mat tempFrame;
             bool readOk = cap.read(tempFrame);
             if (!readOk || tempFrame.empty()) continue;
+
+            double current_fps = cv::getTickFrequency() / (static_cast<double>(cv::getTickCount()) - start);
+            // Smoothing
+            fps = (fps == 0.0) ? current_fps : (fps * 0.9 + current_fps * 0.1);
+            std::string fps_text = "FPS: " + std::to_string(static_cast<int>(fps));
+            cv::putText(tempFrame, fps_text, cv::Point(30, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
 
             {
                 std::lock_guard<std::mutex> lock(m_frameMutex);
