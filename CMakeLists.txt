@@ -16,7 +16,7 @@ include(${wxWidgets_USE_FILE})
 
 # --- OpenCV (shared MSYS2 install) ---
 set(OpenCV_DIR "C:/msys64/mingw64/lib/cmake/opencv4")
-find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio highgui)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio highgui video features2d calib3d)
 
 # --- ViGEmClient (static) ---
 add_library(ViGEmClient STATIC

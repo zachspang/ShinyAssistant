@@ -4,6 +4,7 @@
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 #include <iostream>
+#include <thread>
 
 MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxInitAllImageHandlers();
@@ -42,11 +43,17 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
     m_encounterCounter->SetLabel("Encounters: 0");
 
+    //REMOVE
+    wxButton* testDetectShiny = new wxButton(leftPanel, wxID_ANY, "run checkShiny()");
+    testDetectShiny->Bind(wxEVT_BUTTON, &MainFrame::OnTestDetect, this);
+
     leftSizer->AddSpacer(20);
     leftSizer->Add(webcamChoice, wxSizerFlags().Center().Shaped());
     leftSizer->AddSpacer(20);
     leftSizer->Add(m_videoBitmap, wxSizerFlags().Expand().Shaped().Border(wxALL, 10).Center());
     leftSizer->Add(m_encounterCounter, wxSizerFlags().CenterHorizontal().Border(wxLEFT|wxRIGHT, 5));
+    //REMOVE
+    leftSizer->Add(testDetectShiny);
     
     
     leftPanel->SetSizer(leftSizer);
@@ -90,11 +97,31 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_deviceIPConfirm->Bind(wxEVT_BUTTON, &MainFrame::OnIPConfirm, this);
     m_deviceIPConfirm->Enable(false);
 
+    wxSpinCtrl* detectionX = new wxSpinCtrl(rightPanel, wxID_ANY, "78", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 78);
+    detectionX->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionXUpdate, this);
+    detectionX->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionXUpdate, this);
+
+    wxSpinCtrl* detectionY = new wxSpinCtrl(rightPanel, wxID_ANY, "365", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 365);
+    detectionY->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionYUpdate, this);
+    detectionY->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionYUpdate, this);
+
+    wxSpinCtrl* detectionW = new wxSpinCtrl(rightPanel, wxID_ANY, "293", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 293);
+    detectionW->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionWUpdate, this);
+    detectionW->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionWUpdate, this);
+
+    wxSpinCtrl* detectionH = new wxSpinCtrl(rightPanel, wxID_ANY, "51", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 51);
+    detectionH->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionHUpdate, this);
+    detectionH->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionHUpdate, this);
+
     rightSizer->AddSpacer(20);
     rightSizer->Add(encounterCtrlSizer, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(vcCheckBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(m_controllerTypeRadioBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(deviceIPSizer, wxSizerFlags().Border(wxALL, 10).Center());
+    rightSizer->Add(detectionX);
+    rightSizer->Add(detectionY);
+    rightSizer->Add(detectionW);
+    rightSizer->Add(detectionH);
 
     rightPanel->SetSizer(rightSizer);
     rightSizer->SetSizeHints(rightPanel);
@@ -138,4 +165,35 @@ void MainFrame::OnIPConfirm(wxCommandEvent& evt){
 
 void MainFrame::UpdateVideo(wxTimerEvent& evt){
     m_videoBitmap->SetImage(m_videoStream->GetWxImageFromFrame());
+}
+
+void MainFrame::OnTestDetect(wxCommandEvent& evt){
+    std::thread detectionThread([this]() {
+        m_videoStream->checkShiny();
+    });
+    detectionThread.detach();
+}
+
+void MainFrame::OnDetectionXUpdate(wxCommandEvent& evt){
+    wxSpinCtrl* spin = static_cast<wxSpinCtrl*>(evt.GetEventObject());
+    int value = spin->GetValue();
+    m_videoStream->m_rectX = value;
+}
+
+void MainFrame::OnDetectionYUpdate(wxCommandEvent& evt){
+    wxSpinCtrl* spin = static_cast<wxSpinCtrl*>(evt.GetEventObject());
+    int value = spin->GetValue();
+    m_videoStream->m_rectY = value;
+}
+
+void MainFrame::OnDetectionWUpdate(wxCommandEvent& evt){
+    wxSpinCtrl* spin = static_cast<wxSpinCtrl*>(evt.GetEventObject());
+    int value = spin->GetValue();
+    m_videoStream->m_rectW = value; 
+}
+
+void MainFrame::OnDetectionHUpdate(wxCommandEvent& evt){
+    wxSpinCtrl* spin = static_cast<wxSpinCtrl*>(evt.GetEventObject());
+    int value = spin->GetValue();
+    m_videoStream->m_rectH = value;
 }

@@ -49,4 +49,9 @@ private:
     void OnVCTypeChange(wxCommandEvent& evt);
     void OnIPConfirm(wxCommandEvent& evt);
     void UpdateVideo(wxTimerEvent& evt);
+    void OnTestDetect(wxCommandEvent& evt);
+    void OnDetectionXUpdate(wxCommandEvent& evt);
+    void OnDetectionYUpdate(wxCommandEvent& evt);
+    void OnDetectionWUpdate(wxCommandEvent& evt);
+    void OnDetectionHUpdate(wxCommandEvent& evt);
 };
