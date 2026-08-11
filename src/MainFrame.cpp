@@ -30,6 +30,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     webcams.Add("webcam 1");
     webcams.Add("webcam 2");
     wxChoice* webcamChoice = new wxChoice(leftPanel, wxID_ANY, wxDefaultPosition, wxSize(100, 40), webcams);
+    webcamChoice->SetSelection(0);
 
     m_videoBitmap = new ScaledBitmap(leftPanel, "C:/Users/spang/Desktop/Projects/ShinyAssistant/battletemp.png");
     m_videoTimer = new wxTimer();
@@ -43,7 +44,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
     m_encounterCounter->SetLabel("Encounters: 0");
 
-    //REMOVE
+    //TODO: REMOVE test button
     wxButton* testDetectShiny = new wxButton(leftPanel, wxID_ANY, "run checkShiny()");
     testDetectShiny->Bind(wxEVT_BUTTON, &MainFrame::OnTestDetect, this);
 
@@ -52,7 +53,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     leftSizer->AddSpacer(20);
     leftSizer->Add(m_videoBitmap, wxSizerFlags().Expand().Shaped().Border(wxALL, 10).Center());
     leftSizer->Add(m_encounterCounter, wxSizerFlags().CenterHorizontal().Border(wxLEFT|wxRIGHT, 5));
-    //REMOVE
+    //TODO: REMOVE test button
     leftSizer->Add(testDetectShiny);
     
     
@@ -97,31 +98,56 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_deviceIPConfirm->Bind(wxEVT_BUTTON, &MainFrame::OnIPConfirm, this);
     m_deviceIPConfirm->Enable(false);
 
-    wxSpinCtrl* detectionX = new wxSpinCtrl(rightPanel, wxID_ANY, "78", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 78);
-    detectionX->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionXUpdate, this);
-    detectionX->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionXUpdate, this);
 
-    wxSpinCtrl* detectionY = new wxSpinCtrl(rightPanel, wxID_ANY, "365", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 365);
-    detectionY->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionYUpdate, this);
-    detectionY->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionYUpdate, this);
+    wxBoxSizer* macroChoiceSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxStaticText* macroChoiceLabel = new wxStaticText(rightPanel, wxID_ANY, "Selected Macro: ");
+    wxArrayString macroList;
+    macroList.Add("None");
+    /*
+    for macro in saved macros
+        macroList.add(macro);
+    */
+    wxChoice* macroChoice = new wxChoice(rightPanel, wxID_ANY, wxDefaultPosition, wxSize(100,-1), macroList);
+    macroChoice->SetSelection(0);
+    macroChoiceSizer->Add(macroChoiceLabel, wxSizerFlags().CenterVertical());
+    macroChoiceSizer->Add(macroChoice, wxSizerFlags().CenterVertical());
+    macroChoice->Bind(wxEVT_CHOICE, &MainFrame::OnMacroChange, this);
 
-    wxSpinCtrl* detectionW = new wxSpinCtrl(rightPanel, wxID_ANY, "293", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 293);
-    detectionW->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionWUpdate, this);
-    detectionW->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionWUpdate, this);
+    wxButton* editMacroButton = new wxButton(rightPanel, wxID_ANY, "Edit Macros");
+    editMacroButton->Bind(wxEVT_BUTTON, &MainFrame::OnEditMacro, this);
 
-    wxSpinCtrl* detectionH = new wxSpinCtrl(rightPanel, wxID_ANY, "51", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 51);
-    detectionH->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionHUpdate, this);
-    detectionH->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionHUpdate, this);
+    //TODO: Move detection sizing controls
+    
+    // wxSpinCtrl* detectionX = new wxSpinCtrl(rightPanel, wxID_ANY, "78", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 78);
+    // detectionX->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionXUpdate, this);
+    // detectionX->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionXUpdate, this);
+
+    // wxSpinCtrl* detectionY = new wxSpinCtrl(rightPanel, wxID_ANY, "365", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 365);
+    // detectionY->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionYUpdate, this);
+    // detectionY->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionYUpdate, this);
+
+    // wxSpinCtrl* detectionW = new wxSpinCtrl(rightPanel, wxID_ANY, "293", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 293);
+    // detectionW->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionWUpdate, this);
+    // detectionW->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionWUpdate, this);
+
+    // wxSpinCtrl* detectionH = new wxSpinCtrl(rightPanel, wxID_ANY, "51", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 51);
+    // detectionH->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionHUpdate, this);
+    // detectionH->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionHUpdate, this);
+
+    //
+
 
     rightSizer->AddSpacer(20);
     rightSizer->Add(encounterCtrlSizer, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(vcCheckBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(m_controllerTypeRadioBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(deviceIPSizer, wxSizerFlags().Border(wxALL, 10).Center());
-    rightSizer->Add(detectionX);
-    rightSizer->Add(detectionY);
-    rightSizer->Add(detectionW);
-    rightSizer->Add(detectionH);
+    rightSizer->Add(macroChoiceSizer, wxSizerFlags().Border(wxALL, 5).Center());
+    rightSizer->Add(editMacroButton, wxSizerFlags().Border(wxALL, 5).Center());
+    // rightSizer->Add(detectionX);
+    // rightSizer->Add(detectionY);
+    // rightSizer->Add(detectionW);
+    // rightSizer->Add(detectionH);
 
     rightPanel->SetSizer(rightSizer);
     rightSizer->SetSizeHints(rightPanel);
@@ -136,6 +162,10 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     SetSizerAndFit(boxSizer);
     boxSizer->SetSizeHints(this);
 }
+
+//
+// Event handler implementations
+//
 
 void MainFrame::OnEncounterUpdate(wxSpinEvent& evt){
     int val = evt.GetValue();
@@ -199,4 +229,12 @@ void MainFrame::OnDetectionHUpdate(wxCommandEvent& evt){
     wxSpinCtrl* spin = static_cast<wxSpinCtrl*>(evt.GetEventObject());
     int value = spin->GetValue();
     m_videoStream->m_rectH = value;
+}
+
+void MainFrame::OnMacroChange(wxCommandEvent& evt){
+    //TODO: implement this
+}
+
+void MainFrame::OnEditMacro(wxCommandEvent& evt){
+    //TODO: implement this
 }

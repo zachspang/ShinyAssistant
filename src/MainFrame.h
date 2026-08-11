@@ -54,4 +54,6 @@ private:
     void OnDetectionYUpdate(wxCommandEvent& evt);
     void OnDetectionWUpdate(wxCommandEvent& evt);
     void OnDetectionHUpdate(wxCommandEvent& evt);
+    void OnMacroChange(wxCommandEvent& evt);
+    void OnEditMacro(wxCommandEvent& evt);
 };
