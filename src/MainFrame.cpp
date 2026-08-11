@@ -147,12 +147,14 @@ void MainFrame::OnVCToggle(wxCommandEvent& evt){
     m_vcEnabled = evt.IsChecked();
 
     m_controllerTypeRadioBox->Enable(m_vcEnabled);
-    m_deviceIPCtrl->Enable(m_vcEnabled);
-    m_deviceIPConfirm->Enable(m_vcEnabled);
+    m_deviceIPCtrl->Enable(m_vcEnabled && m_controllerType != xinput);
+    m_deviceIPConfirm->Enable(m_vcEnabled && m_controllerType != xinput);
 }
 
 void MainFrame::OnVCTypeChange(wxCommandEvent& evt){
     m_controllerType = static_cast<ControllerType>(evt.GetSelection());
+    m_deviceIPCtrl->Enable(m_vcEnabled && m_controllerType != xinput);
+    m_deviceIPConfirm->Enable(m_vcEnabled && m_controllerType != xinput);
     //TODO: disconnect if currently connected
 }
 
@@ -167,6 +169,7 @@ void MainFrame::UpdateVideo(wxTimerEvent& evt){
     m_videoBitmap->SetImage(m_videoStream->GetWxImageFromFrame());
 }
 
+//TODO: Remove this, checkShiny() will get called from the macro thread and actually handle the result
 void MainFrame::OnTestDetect(wxCommandEvent& evt){
     std::thread detectionThread([this]() {
         m_videoStream->checkShiny();

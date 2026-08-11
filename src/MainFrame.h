@@ -9,9 +9,9 @@ public:
     MainFrame(const wxString& title);
 
     enum ControllerType {
-        xinput = 1,
-        sysbotbase = 2,
-        rosalinaIR = 3
+        xinput = 0,
+        sysbotbase = 1,
+        rosalinaIR = 2
     };
 private:
     //Reference to a VideoStream object handling the webcam
@@ -33,7 +33,7 @@ private:
     wxRadioBox* m_controllerTypeRadioBox;
 
     //Selection from controllerTypeRadioBox
-    ControllerType m_controllerType;
+    ControllerType m_controllerType = xinput;
 
     //Local device ip from deviceIPCtrl
     wxString m_deviceIP;
