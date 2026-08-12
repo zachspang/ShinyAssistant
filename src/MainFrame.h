@@ -2,6 +2,7 @@
 #include <wx/wx.h>
 #include "ScaledBitmap.h"
 #include "VideoStream.h"
+#include "MacroEditorWindow.h"
 
 class MainFrame : public wxFrame
 {
@@ -44,6 +45,9 @@ private:
     //Confirm button to submit IP 
     wxButton* m_deviceIPConfirm;
 
+    //Second window that pops up to edit macros
+    MacroEditorFrame* m_macroEditorFrame = nullptr;
+
     void OnEncounterUpdate(wxSpinEvent& evt);
     void OnVCToggle(wxCommandEvent& evt);
     void OnVCTypeChange(wxCommandEvent& evt);
@@ -56,4 +60,5 @@ private:
     void OnDetectionHUpdate(wxCommandEvent& evt);
     void OnMacroChange(wxCommandEvent& evt);
     void OnEditMacro(wxCommandEvent& evt);
+    void OnMacroEditorClosed(wxCloseEvent& evt);
 };

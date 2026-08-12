@@ -1,6 +1,7 @@
 #include "MainFrame.h"
 #include "ScaledBitmap.h"
 #include "VideoStream.h"
+#include "MacroEditorWindow.h"
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 #include <iostream>
@@ -116,6 +117,9 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxButton* editMacroButton = new wxButton(rightPanel, wxID_ANY, "Edit Macros");
     editMacroButton->Bind(wxEVT_BUTTON, &MainFrame::OnEditMacro, this);
 
+    m_macroEditorFrame = new MacroEditorFrame(this);
+    m_macroEditorFrame->Bind(wxEVT_CLOSE_WINDOW, &MainFrame::OnMacroEditorClosed, this);
+
     //TODO: Move detection sizing controls
     
     // wxSpinCtrl* detectionX = new wxSpinCtrl(rightPanel, wxID_ANY, "78", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 78);
@@ -139,11 +143,11 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     rightSizer->AddSpacer(20);
     rightSizer->Add(encounterCtrlSizer, wxSizerFlags().Border(wxALL, 10).Center());
+    rightSizer->Add(macroChoiceSizer, wxSizerFlags().Border(wxALL, 5).Center());
+    rightSizer->Add(editMacroButton, wxSizerFlags().Border(wxALL, 5).Center());
     rightSizer->Add(vcCheckBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(m_controllerTypeRadioBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(deviceIPSizer, wxSizerFlags().Border(wxALL, 10).Center());
-    rightSizer->Add(macroChoiceSizer, wxSizerFlags().Border(wxALL, 5).Center());
-    rightSizer->Add(editMacroButton, wxSizerFlags().Border(wxALL, 5).Center());
     // rightSizer->Add(detectionX);
     // rightSizer->Add(detectionY);
     // rightSizer->Add(detectionW);
@@ -236,5 +240,15 @@ void MainFrame::OnMacroChange(wxCommandEvent& evt){
 }
 
 void MainFrame::OnEditMacro(wxCommandEvent& evt){
-    //TODO: implement this
+    if (!m_macroEditorFrame->IsShown()) {
+        m_macroEditorFrame->Show(true);
+    }
+
+    m_macroEditorFrame->Raise();
+    m_macroEditorFrame->SetFocus();
+    m_macroEditorFrame->Restore();
+}
+
+void MainFrame::OnMacroEditorClosed(wxCloseEvent& evt) {
+    m_macroEditorFrame->Show(false);
 }
