@@ -1,7 +1,7 @@
 #include "MainFrame.h"
 #include "ScaledBitmap.h"
 #include "VideoStream.h"
-#include "MacroEditorWindow.h"
+#include "MacroEditorFrame.h"
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 #include <iostream>
@@ -45,6 +45,8 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
     m_encounterCounter->SetLabel("Encounters: 0");
 
+    //TODO: Add pause/play buttons
+    //TODO: Add log under video stream to display logs in app instead of in cout
     //TODO: REMOVE test button
     wxButton* testDetectShiny = new wxButton(leftPanel, wxID_ANY, "run checkShiny()");
     testDetectShiny->Bind(wxEVT_BUTTON, &MainFrame::OnTestDetect, this);
@@ -102,20 +104,22 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     wxBoxSizer* macroChoiceSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* macroChoiceLabel = new wxStaticText(rightPanel, wxID_ANY, "Selected Macro: ");
-    wxArrayString macroList;
-    macroList.Add("None");
+    m_macroList.Add("None");
     /*
     for macro in saved macros
-        macroList.add(macro);
+        m_macroList.add(macro);
     */
-    wxChoice* macroChoice = new wxChoice(rightPanel, wxID_ANY, wxDefaultPosition, wxSize(100,-1), macroList);
-    macroChoice->SetSelection(0);
+    m_macroChoice = new wxChoice(rightPanel, wxID_ANY, wxDefaultPosition, wxSize(100,-1), m_macroList);
+    m_macroChoice->SetSelection(0);
     macroChoiceSizer->Add(macroChoiceLabel, wxSizerFlags().CenterVertical());
-    macroChoiceSizer->Add(macroChoice, wxSizerFlags().CenterVertical());
-    macroChoice->Bind(wxEVT_CHOICE, &MainFrame::OnMacroChange, this);
+    macroChoiceSizer->Add(m_macroChoice, wxSizerFlags().CenterVertical());
+    m_macroChoice->Bind(wxEVT_CHOICE, &MainFrame::OnMacroChange, this);
 
-    wxButton* editMacroButton = new wxButton(rightPanel, wxID_ANY, "Edit Macros");
+    wxButton* editMacroButton = new wxButton(rightPanel, wxID_ANY, "Edit Macro");
     editMacroButton->Bind(wxEVT_BUTTON, &MainFrame::OnEditMacro, this);
+
+    wxButton* createMacroButton = new wxButton(rightPanel, wxID_ANY, "Create New Macro");
+    createMacroButton->Bind(wxEVT_BUTTON, &MainFrame::OnCreateMacro, this);
 
     m_macroEditorFrame = new MacroEditorFrame(this);
     m_macroEditorFrame->Bind(wxEVT_CLOSE_WINDOW, &MainFrame::OnMacroEditorClosed, this);
@@ -144,6 +148,8 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     rightSizer->AddSpacer(20);
     rightSizer->Add(encounterCtrlSizer, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(macroChoiceSizer, wxSizerFlags().Border(wxALL, 5).Center());
+    //TODO: maybe move macro buttons into horizontal sizer?
+    rightSizer->Add(createMacroButton, wxSizerFlags().Border(wxALL, 5).Center());
     rightSizer->Add(editMacroButton, wxSizerFlags().Border(wxALL, 5).Center());
     rightSizer->Add(vcCheckBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(m_controllerTypeRadioBox, wxSizerFlags().Border(wxALL, 10).Center());
@@ -247,6 +253,13 @@ void MainFrame::OnEditMacro(wxCommandEvent& evt){
     m_macroEditorFrame->Raise();
     m_macroEditorFrame->SetFocus();
     m_macroEditorFrame->Restore();
+}
+
+void MainFrame::OnCreateMacro(wxCommandEvent& evt){
+    m_macroList.Add(wxString::Format("Macro %d", static_cast<int>(m_macroList.size())));
+    m_macroChoice->Set(m_macroList);
+    m_macroChoice->SetSelection(m_macroList.size() - 1);
+    OnEditMacro(evt);
 }
 
 void MainFrame::OnMacroEditorClosed(wxCloseEvent& evt) {

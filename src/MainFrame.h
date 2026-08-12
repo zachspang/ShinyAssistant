@@ -2,7 +2,7 @@
 #include <wx/wx.h>
 #include "ScaledBitmap.h"
 #include "VideoStream.h"
-#include "MacroEditorWindow.h"
+#include "MacroEditorFrame.h"
 
 class MainFrame : public wxFrame
 {
@@ -48,6 +48,12 @@ private:
     //Second window that pops up to edit macros
     MacroEditorFrame* m_macroEditorFrame = nullptr;
 
+    //Choice widget used to select macro
+    wxChoice* m_macroChoice;
+
+    //List of available macros
+    wxArrayString m_macroList;
+
     void OnEncounterUpdate(wxSpinEvent& evt);
     void OnVCToggle(wxCommandEvent& evt);
     void OnVCTypeChange(wxCommandEvent& evt);
@@ -60,5 +66,6 @@ private:
     void OnDetectionHUpdate(wxCommandEvent& evt);
     void OnMacroChange(wxCommandEvent& evt);
     void OnEditMacro(wxCommandEvent& evt);
+    void OnCreateMacro(wxCommandEvent& evt);
     void OnMacroEditorClosed(wxCloseEvent& evt);
 };
