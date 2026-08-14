@@ -7,7 +7,8 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent) : wxFrame(parent, wxID_ANY,
     wxArrayString macroCommands;
     //TODO: Load from saved macros
 
-    wxListBox* macroCommandsBox = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(100,300), macroCommands, wxLB_ALWAYS_SB);
+    m_macroCommandsBox = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(100,300), macroCommands, wxLB_ALWAYS_SB);
+    m_macroCommandsBox->Bind(wxEVT_LISTBOX, &MacroEditorFrame::OnMacroListSelected, this);
 
     wxPanel* rightPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100,300));
 
@@ -20,19 +21,19 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent) : wxFrame(parent, wxID_ANY,
 
     wxBoxSizer* actionChoiceSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* actionLabel = new wxStaticText(rightPanel, wxID_ANY, "Action: ");
-    wxChoice* actionChoice = new wxChoice(rightPanel, wxID_ANY, wxDefaultPosition, wxSize(200,-1), actionList);
-    actionChoice->Bind(wxEVT_CHOICE, &MacroEditorFrame::OnActionChoice, this);
-    actionChoice->SetSelection(0);
+    m_actionChoice = new wxChoice(rightPanel, wxID_ANY, wxDefaultPosition, wxSize(200,-1), actionList);
+    m_actionChoice->Bind(wxEVT_CHOICE, &MacroEditorFrame::OnActionChoice, this);
+    m_actionChoice->SetSelection(0);
     actionChoiceSizer->Add(actionLabel, wxSizerFlags().Center());
-    actionChoiceSizer->Add(actionChoice, wxSizerFlags().Center());
+    actionChoiceSizer->Add(m_actionChoice, wxSizerFlags().Center());
 
     m_actionSettingSizer = new wxBoxSizer(wxHORIZONTAL);
-    //Initialize default settings shown
     PopulateActionSettings(rightPanel, actionList[0]);
-    //m_actionSettingSizer's children are changed by OnActionChoice
 
-    wxButton* addButton = new wxButton(rightPanel, wxID_SAVE, "Add action");
-    wxButton* deleteButton = new wxButton(rightPanel, wxID_SAVE, "Delete action");
+    wxButton* addButton = new wxButton(rightPanel, wxID_ANY, "Add action");
+    wxButton* deleteButton = new wxButton(rightPanel, wxID_ANY, "Delete action");
+    addButton->Bind(wxEVT_BUTTON, &MacroEditorFrame::OnAddAction, this);
+    deleteButton->Bind(wxEVT_BUTTON, &MacroEditorFrame::OnDeleteAction, this);
     wxBoxSizer* addDeleteSizer = new wxBoxSizer(wxHORIZONTAL);
     addDeleteSizer->Add(addButton, wxSizerFlags().Border(wxALL, 5));
     addDeleteSizer->Add(deleteButton, wxSizerFlags().Border(wxALL, 5));
@@ -51,60 +52,175 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent) : wxFrame(parent, wxID_ANY,
     rightSizer->Add(m_actionSettingSizer, wxSizerFlags().Center());
     rightSizer->AddSpacer(40);
     rightSizer->Add(addDeleteSizer, wxSizerFlags().Center());
-    rightSizer->AddStretchSpacer(1);           
+    rightSizer->AddStretchSpacer(1);
     rightSizer->Add(saveCloseSizer, wxSizerFlags().Expand());
 
     rightPanel->SetSizer(rightSizer);
     rightSizer->SetSizeHints(rightPanel);
 
     wxBoxSizer* boxSizer = new wxBoxSizer(wxHORIZONTAL);
-    boxSizer->Add(macroCommandsBox, wxSizerFlags().Proportion(1).Expand());
+    boxSizer->Add(m_macroCommandsBox, wxSizerFlags().Proportion(1).Expand());
     boxSizer->AddSpacer(2);
     boxSizer->Add(rightPanel, wxSizerFlags().Proportion(1).Expand());
     SetSizerAndFit(boxSizer);
     boxSizer->SetSizeHints(this);
-
 }
 
 void MacroEditorFrame::OnClose(wxCloseEvent& evt) {
-    evt.Skip(); 
+    evt.Skip();
+}
+
+void MacroEditorFrame::PopulateActionSettings(wxWindow* settingsParent, const wxString& actionName) {
+    m_actionSettingSizer->Clear(true);
+
+    ActionType type = ChoiceLabelToActionType(actionName);
+    m_currentAction.type = type;
+
+    switch (type) {
+        case ActionType::PressButton:
+        case ActionType::ReleaseButton: {
+            wxString label = (type == ActionType::PressButton) ? "Button to press: " : "Button to release: ";
+            wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, label);
+
+            wxArrayString buttonChoices;
+            for (int i = 0; i < (int)ControllerButton::COUNT; ++i)
+                buttonChoices.Add(ButtonToString((ControllerButton)i));
+
+            wxChoice* buttonChoice = new wxChoice(settingsParent, wxID_ANY, wxDefaultPosition, wxDefaultSize, buttonChoices);
+            buttonChoice->SetSelection((int)m_currentAction.button);
+            buttonChoice->Bind(wxEVT_CHOICE, &MacroEditorFrame::OnButtonChoiceChanged, this);
+
+            m_actionSettingSizer->Add(actionSettingLabel, wxSizerFlags().Center());
+            m_actionSettingSizer->Add(buttonChoice, wxSizerFlags().Center().Border(wxLEFT, 5));
+            break;
+        }
+        case ActionType::MoveJoystick: {
+            wxStaticText* xLabel = new wxStaticText(settingsParent, wxID_ANY, "X: ");
+            wxSpinCtrl* xSpin = new wxSpinCtrl(settingsParent, wxID_ANY, wxEmptyString,
+                wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS | wxSP_WRAP, -100, 100, m_currentAction.joystickX);
+            xSpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnJoystickXChanged, this);
+
+            wxStaticText* yLabel = new wxStaticText(settingsParent, wxID_ANY, "Y: ");
+            wxSpinCtrl* ySpin = new wxSpinCtrl(settingsParent, wxID_ANY, wxEmptyString,
+                wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS | wxSP_WRAP, -100, 100, m_currentAction.joystickY);
+            ySpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnJoystickYChanged, this);
+
+            m_actionSettingSizer->Add(xLabel, wxSizerFlags().Center());
+            m_actionSettingSizer->Add(xSpin, wxSizerFlags().Center().Border(wxLEFT, 5));
+            m_actionSettingSizer->Add(yLabel, wxSizerFlags().Center().Border(wxLEFT, 15));
+            m_actionSettingSizer->Add(ySpin, wxSizerFlags().Center().Border(wxLEFT, 5));
+            break;
+        }
+        case ActionType::Delay: {
+            wxStaticText* delayLabel = new wxStaticText(settingsParent, wxID_ANY, "Delay: ");
+            wxSpinCtrl* delaySpin = new wxSpinCtrl(settingsParent, wxID_ANY, wxEmptyString,
+                wxDefaultPosition, wxSize(90, -1), wxSP_ARROW_KEYS, 0, 100000, m_currentAction.delayMs);
+            delaySpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnDelayChanged, this);
+            wxStaticText* msLabel = new wxStaticText(settingsParent, wxID_ANY, " ms");
+
+            m_actionSettingSizer->Add(delayLabel, wxSizerFlags().Center());
+            m_actionSettingSizer->Add(delaySpin, wxSizerFlags().Center().Border(wxLEFT, 5));
+            m_actionSettingSizer->Add(msLabel, wxSizerFlags().Center());
+            break;
+        }
+        case ActionType::CheckForShiny:
+            // No settings for this action.
+            break;
+        case ActionType::AddToEncounterNumber: {
+            wxStaticText* incLabel = new wxStaticText(settingsParent, wxID_ANY, "Amount: ");
+            wxSpinCtrl* incSpin = new wxSpinCtrl(settingsParent, wxID_ANY, wxEmptyString,
+                wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 1000, m_currentAction.encounterIncrement);
+            incSpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnEncounterIncrementChanged, this);
+
+            m_actionSettingSizer->Add(incLabel, wxSizerFlags().Center());
+            m_actionSettingSizer->Add(incSpin, wxSizerFlags().Center().Border(wxLEFT, 5));
+            break;
+        }
+        default: {
+            wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, "Invalid Action");
+            m_actionSettingSizer->Add(actionSettingLabel, wxSizerFlags().Center());
+            break;
+        }
+    }
+
+    settingsParent->Layout();
+}
+
+void MacroEditorFrame::CommitIfEditingExisting() {
+    if (m_selectedActionIndex < 0) return; //Action being edited with no selection, not commited until add action is hit
+    m_macro.UpdateAction((size_t)m_selectedActionIndex, m_currentAction);
+    RefreshMacroListBox();
+}
+
+void MacroEditorFrame::RefreshMacroListBox() {
+    m_macroCommandsBox->Clear();
+    for (const auto& action : m_macro.GetActions()) {
+        m_macroCommandsBox->Append(action.ToDisplayString());
+    }
+    if (m_selectedActionIndex >= 0 && m_selectedActionIndex < (int)m_macroCommandsBox->GetCount()) {
+        m_macroCommandsBox->SetSelection(m_selectedActionIndex);
+    }
 }
 
 void MacroEditorFrame::OnActionChoice(wxCommandEvent& evt) {
     wxWindow* settingsParent = static_cast<wxWindow*>(evt.GetEventObject())->GetParent();
+    //fresh defaults for the newly chosen type
+    m_currentAction = MacroAction{}; 
+
     PopulateActionSettings(settingsParent, evt.GetString());
+    CommitIfEditingExisting();
 }
 
-void MacroEditorFrame::PopulateActionSettings(wxWindow* settingsParent, const wxString& actionName) {
-    //Delete m_actionSettingSizer's children
-    m_actionSettingSizer->Clear(true); 
+void MacroEditorFrame::OnButtonChoiceChanged(wxCommandEvent& evt) {
+    m_currentAction.button = (ControllerButton)evt.GetSelection();
+    CommitIfEditingExisting();
+}
 
-    if (actionName == "Press Button"){
-        wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, "PButton: ");
-        m_actionSettingSizer->Add(actionSettingLabel, wxSizerFlags().Center());
-    } else if (actionName == "Release Button") {
-        wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, "RButton: ");
-        m_actionSettingSizer->Add(actionSettingLabel, wxSizerFlags().Center());
-    } else if (actionName == "Move Joystick") {
-        wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, "Stick: ");
-        m_actionSettingSizer->Add(actionSettingLabel, wxSizerFlags().Center());
-    } else if (actionName == "Delay") {
-        wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, "Delay: ");
-        m_actionSettingSizer->Add(actionSettingLabel, wxSizerFlags().Center());
-    } else if (actionName == "Check For Shiny") {
-        wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, "Check: ");
-        m_actionSettingSizer->Add(actionSettingLabel, wxSizerFlags().Center());
-    } else if (actionName == "Add to encounter number") {
-        wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, "Inc C: ");
-        m_actionSettingSizer->Add(actionSettingLabel, wxSizerFlags().Center());
-    } else {
-        wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, "Invalid Action");
-        m_actionSettingSizer->Add(actionSettingLabel, wxSizerFlags().Center());
-    }
+void MacroEditorFrame::OnJoystickXChanged(wxSpinEvent& evt) {
+    m_currentAction.joystickX = evt.GetPosition();
+    CommitIfEditingExisting();
+}
 
-    settingsParent->Layout();
+void MacroEditorFrame::OnJoystickYChanged(wxSpinEvent& evt) {
+    m_currentAction.joystickY = evt.GetPosition();
+    CommitIfEditingExisting();
+}
 
-    //Might not need? Test resizing after adding all settings
-    //settingsParent->Fit();          //resize settingsParent to fit new sizer content
-    //GetSizer()->Layout();       //relayout the frame's own sizer too
+void MacroEditorFrame::OnDelayChanged(wxSpinEvent& evt) {
+    m_currentAction.delayMs = evt.GetPosition();
+    CommitIfEditingExisting();
+}
+
+void MacroEditorFrame::OnEncounterIncrementChanged(wxSpinEvent& evt) {
+    m_currentAction.encounterIncrement = evt.GetPosition();
+    CommitIfEditingExisting();
+}
+
+void MacroEditorFrame::OnAddAction(wxCommandEvent& evt) {
+    size_t insertIndex = (m_selectedActionIndex >= 0)
+        ? (size_t)m_selectedActionIndex + 1
+        : m_macro.GetActions().size();
+
+    size_t newIndex = m_macro.InsertAction(insertIndex, m_currentAction);
+    m_selectedActionIndex = (int)newIndex;
+    RefreshMacroListBox();
+}
+
+void MacroEditorFrame::OnDeleteAction(wxCommandEvent& evt) {
+    if (m_selectedActionIndex < 0) return;
+    m_macro.RemoveAction((size_t)m_selectedActionIndex);
+    m_selectedActionIndex = -1;
+    RefreshMacroListBox();
+}
+
+void MacroEditorFrame::OnMacroListSelected(wxCommandEvent& evt) {
+    int index = evt.GetSelection();
+    if (index < 0 || index >= (int)m_macro.GetActions().size()) return;
+
+    m_selectedActionIndex = index;
+    m_currentAction = m_macro.GetActions()[index];
+
+    wxString label = ActionTypeToChoiceLabel(m_currentAction.type);
+    m_actionChoice->SetStringSelection(label);
+    PopulateActionSettings(m_actionChoice->GetParent(), label);
 }
