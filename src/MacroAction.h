@@ -22,6 +22,7 @@ wxString ButtonToString(ControllerButton button);
 wxString ActionTypeToChoiceLabel(ActionType type);
 ActionType ChoiceLabelToActionType(const wxString& label);
 
+//A single macro action (ex. Pressing A, moving joystick or a delay)
 struct MacroAction {
     ActionType type = ActionType::Invalid;
 

@@ -4,6 +4,8 @@
 #include "MacroEditorFrame.h"
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
+#include <wx/stdpaths.h>
+#include <wx/filename.h>
 #include <iostream>
 #include <thread>
 
@@ -45,20 +47,17 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
     m_encounterCounter->SetLabel("Encounters: 0");
 
-    //TODO: Add pause/play buttons
     //TODO: Add log under video stream to display logs in app instead of in cout
-    //TODO: REMOVE test button
-    wxButton* testDetectShiny = new wxButton(leftPanel, wxID_ANY, "run checkShiny()");
-    testDetectShiny->Bind(wxEVT_BUTTON, &MainFrame::OnTestDetect, this);
+
+    m_macroToggleButton = new wxButton(leftPanel, wxID_ANY, "Start Macro");
+    m_macroToggleButton->Bind(wxEVT_BUTTON, &MainFrame::OnMacroToggle, this);
 
     leftSizer->AddSpacer(20);
     leftSizer->Add(webcamChoice, wxSizerFlags().Center().Shaped());
     leftSizer->AddSpacer(20);
     leftSizer->Add(m_videoBitmap, wxSizerFlags().Expand().Shaped().Border(wxALL, 10).Center());
     leftSizer->Add(m_encounterCounter, wxSizerFlags().CenterHorizontal().Border(wxLEFT|wxRIGHT, 5));
-    //TODO: REMOVE test button
-    leftSizer->Add(testDetectShiny);
-    
+    leftSizer->Add(m_macroToggleButton, wxSizerFlags().Center());
     
     leftPanel->SetSizer(leftSizer);
     leftSizer->SetSizeHints(leftPanel);
@@ -101,16 +100,15 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_deviceIPConfirm->Bind(wxEVT_BUTTON, &MainFrame::OnIPConfirm, this);
     m_deviceIPConfirm->Enable(false);
 
+    //Macros are all stored in a single file, loaded once here and shared with the editor
+    wxString macroDir = wxStandardPaths::Get().GetUserDataDir();
+    wxFileName::Mkdir(macroDir, wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
+    m_macroFilePath = macroDir + wxFILE_SEP_PATH + "macros.txt";
+    m_macroLibrary.LoadFromFile(m_macroFilePath); //this fails if no macros are made which ok
 
     wxBoxSizer* macroChoiceSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* macroChoiceLabel = new wxStaticText(rightPanel, wxID_ANY, "Selected Macro: ");
-    m_macroList.Add("None");
-    /*
-    for macro in saved macros
-        m_macroList.add(macro);
-    */
-    m_macroChoice = new wxChoice(rightPanel, wxID_ANY, wxDefaultPosition, wxSize(100,-1), m_macroList);
-    m_macroChoice->SetSelection(0);
+    m_macroChoice = new wxChoice(rightPanel, wxID_ANY, wxDefaultPosition, wxSize(100,-1));
     macroChoiceSizer->Add(macroChoiceLabel, wxSizerFlags().CenterVertical());
     macroChoiceSizer->Add(m_macroChoice, wxSizerFlags().CenterVertical());
     m_macroChoice->Bind(wxEVT_CHOICE, &MainFrame::OnMacroChange, this);
@@ -121,8 +119,17 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxButton* createMacroButton = new wxButton(rightPanel, wxID_ANY, "Create New Macro");
     createMacroButton->Bind(wxEVT_BUTTON, &MainFrame::OnCreateMacro, this);
 
-    m_macroEditorFrame = new MacroEditorFrame(this);
-    m_macroEditorFrame->Bind(wxEVT_CLOSE_WINDOW, &MainFrame::OnMacroEditorClosed, this);
+    wxButton* deleteMacroButton = new wxButton(rightPanel, wxID_ANY, "Delete Macro");
+    deleteMacroButton->Bind(wxEVT_BUTTON, &MainFrame::OnDeleteMacro, this);
+
+    wxBoxSizer* macroButtonSizer = new wxBoxSizer(wxHORIZONTAL);
+    macroButtonSizer->Add(createMacroButton, wxSizerFlags().Border(wxALL, 5));
+    macroButtonSizer->Add(deleteMacroButton, wxSizerFlags().Border(wxALL, 5));
+
+    m_macroEditorFrame = new MacroEditorFrame(this, &m_macroLibrary, m_macroFilePath);
+    m_macroEditorFrame->Bind(wxEVT_SHOW, &MainFrame::OnMacroEditorClosed, this);
+
+    RefreshMacroChoice();
 
     //TODO: Move detection sizing controls
     
@@ -148,8 +155,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     rightSizer->AddSpacer(20);
     rightSizer->Add(encounterCtrlSizer, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(macroChoiceSizer, wxSizerFlags().Border(wxALL, 5).Center());
-    //TODO: maybe move macro buttons into horizontal sizer?
-    rightSizer->Add(createMacroButton, wxSizerFlags().Border(wxALL, 5).Center());
+    rightSizer->Add(macroButtonSizer, wxSizerFlags().Center());
     rightSizer->Add(editMacroButton, wxSizerFlags().Border(wxALL, 5).Center());
     rightSizer->Add(vcCheckBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(m_controllerTypeRadioBox, wxSizerFlags().Border(wxALL, 10).Center());
@@ -171,6 +177,36 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     boxSizer->Add(rightPanel, wxSizerFlags().Proportion(2).Expand());
     SetSizerAndFit(boxSizer);
     boxSizer->SetSizeHints(this);
+}
+
+//
+// Helper Implementations
+//
+
+void MainFrame::UpdateSelectedMacroPointer() {
+    int index = m_macroChoice->GetSelection();
+    auto& macros = m_macroLibrary.GetMacros();
+
+    if (index == wxNOT_FOUND || index >= (int)macros.size()) {
+        m_selectedMacro = nullptr;
+        return;
+    }
+
+    m_selectedMacro = &macros[(size_t)index];
+}
+
+void MainFrame::RefreshMacroChoice() {
+    wxString previouslySelected = m_macroChoice->GetStringSelection();
+
+    wxArrayString names = m_macroLibrary.GetMacroNames();
+    m_macroChoice->Set(names);
+
+    if (!names.IsEmpty()) {
+        int restoredIndex = m_macroChoice->FindString(previouslySelected);
+        m_macroChoice->SetSelection(restoredIndex != wxNOT_FOUND ? restoredIndex : 0);
+    }
+
+    UpdateSelectedMacroPointer();
 }
 
 //
@@ -242,13 +278,19 @@ void MainFrame::OnDetectionHUpdate(wxCommandEvent& evt){
 }
 
 void MainFrame::OnMacroChange(wxCommandEvent& evt){
-    //TODO: implement this
+    //StopMacroThread();
+    m_macroToggleButton->SetLabel("Start Macro");
+    UpdateSelectedMacroPointer();
 }
 
 void MainFrame::OnEditMacro(wxCommandEvent& evt){
-    if (!m_macroEditorFrame->IsShown()) {
-        m_macroEditorFrame->Show(true);
-    }
+    int index = m_macroChoice->GetSelection();
+    if (index == wxNOT_FOUND || index >= (int)m_macroLibrary.GetMacros().size()) return;
+
+    //StopMacroThread();
+    m_macroToggleButton->SetLabel("Start Macro");
+
+    m_macroEditorFrame->EditMacro((size_t)index);
 
     m_macroEditorFrame->Raise();
     m_macroEditorFrame->SetFocus();
@@ -256,12 +298,48 @@ void MainFrame::OnEditMacro(wxCommandEvent& evt){
 }
 
 void MainFrame::OnCreateMacro(wxCommandEvent& evt){
-    m_macroList.Add(wxString::Format("Macro %d", static_cast<int>(m_macroList.size())));
-    m_macroChoice->Set(m_macroList);
-    m_macroChoice->SetSelection(m_macroList.size() - 1);
-    OnEditMacro(evt);
+    //StopMacroThread();
+    m_macroToggleButton->SetLabel("Start Macro");
+
+    m_macroEditorFrame->EditNewMacro();
+
+    m_macroEditorFrame->Raise();
+    m_macroEditorFrame->SetFocus();
+    m_macroEditorFrame->Restore();
 }
 
-void MainFrame::OnMacroEditorClosed(wxCloseEvent& evt) {
-    m_macroEditorFrame->Show(false);
+void MainFrame::OnDeleteMacro(wxCommandEvent& evt){
+    int index = m_macroChoice->GetSelection();
+    if (index == wxNOT_FOUND || index >= (int)m_macroLibrary.GetMacros().size()) return;
+
+    wxString name = m_macroLibrary.GetMacros()[index].GetName();
+    int result = wxMessageBox(wxString::Format("Delete macro \"%s\"? This cannot be undone.", name),
+        "Delete Macro", wxYES_NO | wxICON_WARNING, this);
+    if (result != wxYES) return;
+
+    //StopMacroThread();
+    m_macroToggleButton->SetLabel("Start Macro");
+
+    m_macroLibrary.RemoveMacro((size_t)index);
+    m_macroLibrary.SaveToFile(m_macroFilePath);
+    RefreshMacroChoice();
+}
+
+void MainFrame::OnMacroEditorClosed(wxShowEvent& evt) {
+    evt.Skip();
+    m_macroEditorOpen = evt.IsShown();
+    m_macroToggleButton->Enable(!m_macroEditorOpen);
+
+    if (evt.IsShown()) return; //only refresh once the editor is dismissed, not when it opens
+    RefreshMacroChoice();
+}
+
+void MainFrame::OnMacroToggle(wxCommandEvent& evt) {
+    // if (m_macroRunning) {
+    //     StopMacroThread();
+    //     m_macroToggleButton->SetLabel("Start Macro");
+    // } else {
+    //     StartMacroThread();
+    //     m_macroToggleButton->SetLabel("Stop Macro");
+    // }
 }

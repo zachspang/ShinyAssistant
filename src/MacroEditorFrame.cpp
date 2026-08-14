@@ -1,6 +1,8 @@
 #include "MacroEditorFrame.h"
 
-MacroEditorFrame::MacroEditorFrame(wxWindow* parent) : wxFrame(parent, wxID_ANY, "Macro Editor") {
+MacroEditorFrame::MacroEditorFrame(wxWindow* parent, MacroLibrary* library, const wxString& filePath)
+    : wxFrame(parent, wxID_ANY, "Macro Editor"), m_library(library), m_filePath(filePath) {
+
     m_panel = new wxPanel(this);
     Bind(wxEVT_CLOSE_WINDOW, &MacroEditorFrame::OnClose, this);
 
@@ -11,6 +13,13 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent) : wxFrame(parent, wxID_ANY,
     m_macroCommandsBox->Bind(wxEVT_LISTBOX, &MacroEditorFrame::OnMacroListSelected, this);
 
     wxPanel* rightPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100,300));
+
+    wxBoxSizer* nameSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxStaticText* nameLabel = new wxStaticText(rightPanel, wxID_ANY, "Name: ");
+    m_nameCtrl = new wxTextCtrl(rightPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(200, -1));
+    m_nameCtrl->Bind(wxEVT_TEXT, &MacroEditorFrame::OnNameChanged, this);
+    nameSizer->Add(nameLabel, wxSizerFlags().Center());
+    nameSizer->Add(m_nameCtrl, wxSizerFlags().Center());
 
     actionList.Add("Press Button");
     actionList.Add("Release Button");
@@ -39,14 +48,18 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent) : wxFrame(parent, wxID_ANY,
     addDeleteSizer->Add(deleteButton, wxSizerFlags().Border(wxALL, 5));
 
     wxButton* saveButton = new wxButton(rightPanel, wxID_SAVE, "Save");
-    wxButton* closeButton = new wxButton(rightPanel, wxID_CLOSE, "Close");
+    wxButton* cancelButton = new wxButton(rightPanel, wxID_CANCEL, "Cancel");
+    saveButton->Bind(wxEVT_BUTTON, &MacroEditorFrame::OnSave, this);
+    cancelButton->Bind(wxEVT_BUTTON, &MacroEditorFrame::OnCancel, this);
 
     wxBoxSizer* saveCloseSizer = new wxBoxSizer(wxHORIZONTAL);
     saveCloseSizer->AddStretchSpacer(1);
     saveCloseSizer->Add(saveButton, wxSizerFlags().Border(wxALL, 5));
-    saveCloseSizer->Add(closeButton, wxSizerFlags().Border(wxALL, 5));
+    saveCloseSizer->Add(cancelButton, wxSizerFlags().Border(wxALL, 5));
 
     wxBoxSizer* rightSizer = new wxBoxSizer(wxVERTICAL);
+    rightSizer->Add(nameSizer, wxSizerFlags().Center());
+    rightSizer->AddSpacer(20);
     rightSizer->Add(actionChoiceSizer, wxSizerFlags().Center());
     rightSizer->AddSpacer(40);
     rightSizer->Add(m_actionSettingSizer, wxSizerFlags().Center());
@@ -66,8 +79,42 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent) : wxFrame(parent, wxID_ANY,
     boxSizer->SetSizeHints(this);
 }
 
+void MacroEditorFrame::LoadWorkingCopy(const Macro& source, int libraryIndex) {
+    m_originalMacro = source;
+    m_macro = source;
+    m_libraryIndex = libraryIndex;
+    m_selectedActionIndex = -1;
+    m_currentAction = MacroAction{};
+
+    RefreshFromWorkingCopy();
+}
+
+void MacroEditorFrame::RefreshFromWorkingCopy() {
+    m_nameCtrl->ChangeValue(m_macro.GetName());
+    RefreshMacroListBox();
+
+    m_actionChoice->SetSelection(0);
+    PopulateActionSettings(m_actionChoice->GetParent(), actionList[0]);
+}
+
+void MacroEditorFrame::EditMacro(size_t libraryIndex) {
+    if (libraryIndex >= m_library->GetMacros().size()) return;
+    LoadWorkingCopy(m_library->GetMacros()[libraryIndex], (int)libraryIndex);
+    Show();
+    Raise();
+}
+
+void MacroEditorFrame::EditNewMacro() {
+    LoadWorkingCopy(Macro("New Macro"), -1);
+    Show();
+    Raise();
+}
+
 void MacroEditorFrame::OnClose(wxCloseEvent& evt) {
-    evt.Skip();
+    if (evt.CanVeto()) evt.Veto(); //veto the default close behavior and hide instead
+    m_macro = m_originalMacro; //discard any unsaved edits, same as Cancel
+    RefreshFromWorkingCopy();
+    Hide();
 }
 
 void MacroEditorFrame::PopulateActionSettings(wxWindow* settingsParent, const wxString& actionName) {
@@ -223,4 +270,30 @@ void MacroEditorFrame::OnMacroListSelected(wxCommandEvent& evt) {
     wxString label = ActionTypeToChoiceLabel(m_currentAction.type);
     m_actionChoice->SetStringSelection(label);
     PopulateActionSettings(m_actionChoice->GetParent(), label);
+}
+
+void MacroEditorFrame::OnNameChanged(wxCommandEvent& evt) {
+    m_macro.SetName(m_nameCtrl->GetValue());
+}
+
+void MacroEditorFrame::OnSave(wxCommandEvent& evt) {
+    if (m_libraryIndex >= 0) {
+        m_library->UpdateMacro((size_t)m_libraryIndex, m_macro);
+    } else {
+        m_libraryIndex = (int)m_library->AddMacro(m_macro);
+    }
+
+    if (!m_library->SaveToFile(m_filePath)) {
+        wxMessageBox("Failed to save macros to file.", "Save Error", wxOK | wxICON_ERROR, this);
+        return;
+    }
+
+    m_originalMacro = m_macro;
+    Hide();
+}
+
+void MacroEditorFrame::OnCancel(wxCommandEvent& evt) {
+    m_macro = m_originalMacro; 
+    RefreshFromWorkingCopy();
+    Hide();
 }

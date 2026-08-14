@@ -3,6 +3,7 @@
 #include "ScaledBitmap.h"
 #include "VideoStream.h"
 #include "MacroEditorFrame.h"
+#include "MacroLibrary.h"
 
 class MainFrame : public wxFrame
 {
@@ -51,8 +52,27 @@ private:
     //Choice widget used to select macro
     wxChoice* m_macroChoice;
 
-    //List of available macros
-    wxArrayString m_macroList;
+    //Owns every saved macro, loaded from / saved to m_macroFilePath
+    MacroLibrary m_macroLibrary;
+
+    //Path to the single file all macros are stored in
+    wxString m_macroFilePath;
+
+    //Pointer to the currently selected macro in m_macroLibrary, or nullptr if none selected.
+    //Recomputed via UpdateSelectedMacroPointer() whenever the selection or library contents change,
+    //since m_macroLibrary's underlying vector can reallocate on add/remove.
+    Macro* m_selectedMacro = nullptr;
+
+    void UpdateSelectedMacroPointer();
+
+    //True while MacroEditorFrame is open, used to block Start while editing
+    bool m_macroEditorOpen = false;
+
+    //Start/Stop button, kept as a member so it can be enabled/disabled from other handlers
+    wxButton* m_macroToggleButton = nullptr;
+
+    //Rebuilds m_macroChoice's items from m_macroLibrary, preserving selection where possible
+    void RefreshMacroChoice();
 
     void OnEncounterUpdate(wxSpinEvent& evt);
     void OnVCToggle(wxCommandEvent& evt);
@@ -65,7 +85,9 @@ private:
     void OnDetectionWUpdate(wxCommandEvent& evt);
     void OnDetectionHUpdate(wxCommandEvent& evt);
     void OnMacroChange(wxCommandEvent& evt);
+    void OnDeleteMacro(wxCommandEvent& evt);
     void OnEditMacro(wxCommandEvent& evt);
     void OnCreateMacro(wxCommandEvent& evt);
-    void OnMacroEditorClosed(wxCloseEvent& evt);
+    void OnMacroEditorClosed(wxShowEvent& evt);
+    void OnMacroToggle(wxCommandEvent& evt);
 };

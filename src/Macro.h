@@ -1,9 +1,11 @@
 #pragma once
 #include <vector>
 #include <wx/string.h>
+#include <wx/arrstr.h>
 #include "MacroAction.h"
 #include "VirtualController.h"
 
+//Owns a vector of actions and a pointer to a VirtualController to playback the actions
 class Macro {
 public:
     explicit Macro(const wxString& name = wxEmptyString) : m_name(name) {}
@@ -16,17 +18,18 @@ public:
     //Inserts before index. index >= GetActions().size() appends to the end.
     //Returns the actual index the action was inserted at.
     size_t InsertAction(size_t index, const MacroAction& action);
-
     void UpdateAction(size_t index, const MacroAction& action);
     void RemoveAction(size_t index);
 
     void Play();
 
-    bool SaveToFile(const wxString& path) const;
-    bool LoadFromFile(const wxString& path);
+    //Serialize a block of lines representing just this macro: name, action count, then one line per action.
+    wxArrayString SerializeLines() const;
+    //Deserialize a block of lines representing just this macro: name, action count, then one line per action.
+    static Macro DeserializeLines(const wxArrayString& lines);
 
 private:
     wxString m_name;
     std::vector<MacroAction> m_actions;
-    VirtualController m_controller;
+    VirtualController* m_controller;
 };

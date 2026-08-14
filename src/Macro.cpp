@@ -24,37 +24,34 @@ void Macro::Play() {
             wxMilliSleep(action.delayMs);
         } else if (action.type == ActionType::CheckForShiny) {
             //TODO: Call videoStream.checkShiny() and stop playing based on result
+            //TODO: If shiny send have discord bot ping user with current frame to show shiny
         } else if (action.type == ActionType::AddToEncounterNumber) {
             //TODO: inc encouterCounter by action.encounterIncrement
         } else {
-            m_controller.SendAction(action);
+            m_controller->SendAction(action);
         }
     }
 }
 
-bool Macro::SaveToFile(const wxString& path) const {
-    wxTextFile file;
-    if (wxFileExists(path)) { if (!file.Open(path)) return false; file.Clear(); }
-    else { file.Create(path); }
-
-    file.AddLine(m_name);
-    for (const auto& action : m_actions) file.AddLine(action.Serialize());
-
-    bool ok = file.Write();
-    file.Close();
-    return ok;
+wxArrayString Macro::SerializeLines() const {
+    wxArrayString lines;
+    lines.Add(m_name);
+    lines.Add(wxString::Format("%zu", m_actions.size()));
+    for (const auto& action : m_actions) lines.Add(action.Serialize());
+    return lines;
 }
 
-bool Macro::LoadFromFile(const wxString& path) {
-    wxTextFile file;
-    if (!file.Open(path)) return false;
-    if (file.GetLineCount() == 0) { file.Close(); return false; }
+Macro Macro::DeserializeLines(const wxArrayString& lines) {
+    Macro macro;
+    size_t i = 0;
+    if (i >= lines.GetCount()) return macro;
+    macro.m_name = lines[i++];
 
-    m_actions.clear();
-    m_name = file.GetFirstLine();
-    for (wxString line = file.GetNextLine(); !file.Eof(); line = file.GetNextLine()) {
-        if (!line.IsEmpty()) m_actions.push_back(MacroAction::Deserialize(line));
+    long actionCount = 0;
+    if (i < lines.GetCount()) lines[i++].ToLong(&actionCount);
+
+    for (long n = 0; n < actionCount && i < lines.GetCount(); ++n, ++i) {
+        macro.m_actions.push_back(MacroAction::Deserialize(lines[i]));
     }
-    file.Close();
-    return true;
+    return macro;
 }
