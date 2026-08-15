@@ -13,6 +13,7 @@ public:
         Bind(wxEVT_SIZE, &ScaledBitmap::OnResize, this);
         Bind(wxEVT_PAINT, &ScaledBitmap::OnPaint, this);
         m_source_image = wxImage();
+        ApplyMinSize();
     }
 
     ScaledBitmap(wxWindow* parent, const wxString& filePath, wxWindowID id = wxID_ANY) : wxWindow(parent, id){
@@ -20,6 +21,7 @@ public:
         Bind(wxEVT_SIZE, &ScaledBitmap::OnResize, this);
         Bind(wxEVT_PAINT, &ScaledBitmap::OnPaint, this);
         m_source_image = wxImage();
+        ApplyMinSize();
         LoadImage(filePath);
     }
 
@@ -27,38 +29,50 @@ public:
     bool LoadImage(const wxString& filePath){
         wxImage img;
         if (!img.LoadFile(filePath)) return false;
-        m_source_image = img;
-        ApplyImage();
+        SetImage(img);
         return true;
     }
 
     // Swap to a new image already in memory
     void SetImage(const wxImage& img){
+        if (!img.IsOk()) return; //drop invalid images (e.g. frame from webcam still starting up)
+
+        bool dimensionsChanged = !m_source_image.IsOk() || m_source_image.GetWidth()  != img.GetWidth() || m_source_image.GetHeight() != img.GetHeight();
+
         m_source_image = img;
-        ApplyImage();
+
+        // Only touch the sizer's ratio layout when the source's actual aspect ratio changes, e.g. switching webcam sources
+        if (dimensionsChanged) {
+            ApplyRatio();
+        }
+        RescaleToCurrentSize();
     }
 
 private:
     // Loaded image kept at its original resolution
     wxImage m_source_image;
-    // Floor for how small the image can shrink. Without this the midWidth become the native width of the image which
-    // is too large for a minimum
-    int m_minWidth = 100; 
+    // Fixed floor for how small the widget can shrink, independent of aspect ratio.
+    int m_minWidth = 160;
+    int m_minHeight = 90;
     //Cached scaled image
     wxBitmap m_scaled_bitmap;
 
-    // Sets MinSize of widget to (m_minWidth, height-that-preserves-ratio)
+    // Sets MinSize of widget to (m_minWidth, m_minHeight)
     void ApplyMinSize(){
-        if (!m_source_image.IsOk()) return;
-        double ratio = (double)m_source_image.GetHeight() / (double)m_source_image.GetWidth();
-        SetMinSize(wxSize(m_minWidth, std::max(1, (int)(m_minWidth * ratio))));
+        SetMinSize(wxSize(m_minWidth, m_minHeight));
+    }
 
-        //Need to update sizers aspect ratio since it is normally only computed when the this is created
+    // Updates the containing sizer's Shaped() ratio to match the current
+    // source image, so the widget's box always matches the real aspect ratio
+    // whatever it happens to be for the current source.
+    void ApplyRatio(){
+        int w = m_source_image.GetWidth();
+        int h = m_source_image.GetHeight();
+        if (w <= 0 || h <= 0) return;
+
         if (wxSizer* sizer = GetContainingSizer()) {
             if (wxSizerItem* item = sizer->GetItem(this)) {
-                int w = m_source_image.GetWidth();
-                int h = m_source_image.GetHeight();
-                if (w > 0 && h > 0) item->SetRatio(w, h);
+                item->SetRatio(w, h);
             }
         }
         //Force a layout update
@@ -74,13 +88,7 @@ private:
         Refresh(false);
     }
 
-    void ApplyImage(){
-        if (!m_source_image.IsOk()) return;
-        ApplyMinSize();
-        RescaleToCurrentSize();
-    }
-
-    // Event handler bound to exEVT_SIZE
+    // Event handler bound to wxEVT_SIZE
     void OnResize(wxSizeEvent& evt){
         RescaleToCurrentSize();
         evt.Skip();
