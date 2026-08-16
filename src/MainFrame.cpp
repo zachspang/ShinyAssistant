@@ -247,10 +247,6 @@ void MainFrame::StartMacroThread() {
         Log(wxString::Format("Macro \"%s\" started", macroCopy.GetName()));
         while (m_macroRunning) {
             macroCopy.Play(m_macroRunning, m_controller);
-            if (m_macroRunning) {
-                //TODO: this might ruin precision
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
         }
         Log(wxString::Format("Macro \"%s\" stopped", macroCopy.GetName()));
     });
