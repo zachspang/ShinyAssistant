@@ -2,6 +2,7 @@
 #include "ScaledBitmap.h"
 #include "VideoStream.h"
 #include "MacroEditorFrame.h"
+#include "VirtualXInput.h"
 #include "Logging.h"
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
@@ -225,14 +226,31 @@ void MainFrame::RefreshMacroChoice() {
 
 void MainFrame::StartMacroThread() {
     if (!m_selectedMacro || m_macroRunning) return;
+    //TODO: assign to other controller types
+    switch(m_controllerType) {
+        case ControllerType::xinput:
+            if (m_controller == nullptr) {
+                m_controller = new VirtualXInput();
+            }
+            break;
 
+        default:
+            Log("Error: Attempted to start macro with unimplemented controller");
+            m_macroToggleButton->SetLabel("Start Macro");
+            return;
+    }
+    
     Macro macroCopy = *m_selectedMacro; //snapshot of macro, thread never touches the library after this
     m_macroRunning = true;
 
     m_macroThread = std::thread([this, macroCopy]() mutable {
         Log(wxString::Format("Macro \"%s\" started", macroCopy.GetName()));
         while (m_macroRunning) {
-            macroCopy.Play(m_macroRunning);
+            macroCopy.Play(m_macroRunning, m_controller);
+            if (m_macroRunning) {
+                //TODO: this might ruin precision
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
         }
         Log(wxString::Format("Macro \"%s\" stopped", macroCopy.GetName()));
     });
@@ -267,6 +285,11 @@ void MainFrame::OnVCToggle(wxCommandEvent& evt){
     m_controllerTypeRadioBox->Enable(m_vcEnabled);
     m_deviceIPCtrl->Enable(m_vcEnabled && m_controllerType != xinput);
     m_deviceIPConfirm->Enable(m_vcEnabled && m_controllerType != xinput);
+
+    if (!m_vcEnabled && m_macroRunning) {
+        StopMacroThread();
+        m_macroToggleButton->SetLabel("Start Macro");
+    }
 }
 
 void MainFrame::OnVCTypeChange(wxCommandEvent& evt){
@@ -274,6 +297,11 @@ void MainFrame::OnVCTypeChange(wxCommandEvent& evt){
     m_deviceIPCtrl->Enable(m_vcEnabled && m_controllerType != xinput);
     m_deviceIPConfirm->Enable(m_vcEnabled && m_controllerType != xinput);
     //TODO: disconnect if currently connected
+
+    if (m_macroRunning) {
+        StopMacroThread();
+        m_macroToggleButton->SetLabel("Start Macro");
+    }
 }
 
 void MainFrame::OnIPConfirm(wxCommandEvent& evt){
@@ -363,8 +391,10 @@ void MainFrame::OnMacroToggle(wxCommandEvent& evt) {
     if (m_macroRunning) {
         StopMacroThread();
         m_macroToggleButton->SetLabel("Start Macro");
+    } else if (!m_vcEnabled) {
+        Log("Virtual Controller Disabled, cant start macro");
     } else {
-        StartMacroThread();
         m_macroToggleButton->SetLabel("Stop Macro");
+        StartMacroThread();
     }
 }

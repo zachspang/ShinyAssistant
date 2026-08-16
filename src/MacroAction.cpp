@@ -30,7 +30,8 @@ wxString ActionTypeToString(ActionType t) {
     switch (t) {
         case ActionType::PressButton: return "PressButton";
         case ActionType::ReleaseButton: return "ReleaseButton";
-        case ActionType::MoveJoystick: return "MoveJoystick";
+        case ActionType::MoveLeftJoystick: return "MoveLeftJoystick";
+        case ActionType::MoveRightJoystick: return "MoveRightJoystick";
         case ActionType::Delay: return "Delay";
         case ActionType::CheckForShiny: return "CheckForShiny";
         case ActionType::AddToEncounterNumber: return "AddToEncounterNumber";
@@ -41,7 +42,8 @@ wxString ActionTypeToString(ActionType t) {
 ActionType StringToActionType(const wxString& s) {
     if (s == "PressButton") return ActionType::PressButton;
     if (s == "ReleaseButton") return ActionType::ReleaseButton;
-    if (s == "MoveJoystick") return ActionType::MoveJoystick;
+    if (s == "MoveLeftJoystick") return ActionType::MoveLeftJoystick;
+    if (s == "MoveRightJoystick") return ActionType::MoveRightJoystick;
     if (s == "Delay") return ActionType::Delay;
     if (s == "CheckForShiny") return ActionType::CheckForShiny;
     if (s == "AddToEncounterNumber") return ActionType::AddToEncounterNumber;
@@ -52,7 +54,8 @@ wxString ActionTypeToChoiceLabel(ActionType type) {
     switch (type) {
         case ActionType::PressButton: return "Press Button";
         case ActionType::ReleaseButton: return "Release Button";
-        case ActionType::MoveJoystick: return "Move Joystick";
+        case ActionType::MoveLeftJoystick: return "Move Left Joystick";
+        case ActionType::MoveRightJoystick: return "Move Right Joystick";
         case ActionType::Delay: return "Delay";
         case ActionType::CheckForShiny: return "Check For Shiny";
         case ActionType::AddToEncounterNumber: return "Add to encounter number";
@@ -63,7 +66,8 @@ wxString ActionTypeToChoiceLabel(ActionType type) {
 ActionType ChoiceLabelToActionType(const wxString& label) {
     if (label == "Press Button") return ActionType::PressButton;
     if (label == "Release Button") return ActionType::ReleaseButton;
-    if (label == "Move Joystick") return ActionType::MoveJoystick;
+    if (label == "Move Left Joystick") return ActionType::MoveLeftJoystick;
+    if (label == "Move Right Joystick") return ActionType::MoveRightJoystick;
     if (label == "Delay") return ActionType::Delay;
     if (label == "Check For Shiny") return ActionType::CheckForShiny;
     if (label == "Add to encounter number") return ActionType::AddToEncounterNumber;
@@ -76,8 +80,10 @@ wxString MacroAction::ToDisplayString() const {
             return "Press " + ButtonToString(button);
         case ActionType::ReleaseButton:
             return "Release " + ButtonToString(button);
-        case ActionType::MoveJoystick:
-            return wxString::Format("Move Joystick (%d, %d)", joystickX, joystickY);
+        case ActionType::MoveLeftJoystick:
+            return wxString::Format("Move Left Joystick (%d, %d)", leftJoystickX, leftJoystickY);
+        case ActionType::MoveRightJoystick:
+            return wxString::Format("Move Right Joystick (%d, %d)", rightJoystickX, rightJoystickY);
         case ActionType::Delay:
             return wxString::Format("Delay %dms", delayMs);
         case ActionType::CheckForShiny:
@@ -90,8 +96,8 @@ wxString MacroAction::ToDisplayString() const {
 }
 
 wxString MacroAction::Serialize() const {
-    return wxString::Format("%s|%d|%d|%d|%d|%d",
-        ActionTypeToString(type), (int)button, joystickX, joystickY, delayMs, encounterIncrement);
+    return wxString::Format("%s|%d|%d|%d|%d|%d|%d|%d",
+        ActionTypeToString(type), (int)button, leftJoystickX, leftJoystickY, rightJoystickX, rightJoystickY, delayMs, encounterIncrement);
 }
 
 MacroAction MacroAction::Deserialize(const wxString& line) {
@@ -99,8 +105,10 @@ MacroAction MacroAction::Deserialize(const wxString& line) {
     MacroAction a;
     if (tok.HasMoreTokens()) a.type = StringToActionType(tok.GetNextToken());
     if (tok.HasMoreTokens()) a.button = (ControllerButton)wxAtoi(tok.GetNextToken());
-    if (tok.HasMoreTokens()) a.joystickX = wxAtoi(tok.GetNextToken());
-    if (tok.HasMoreTokens()) a.joystickY = wxAtoi(tok.GetNextToken());
+    if (tok.HasMoreTokens()) a.leftJoystickX = wxAtoi(tok.GetNextToken());
+    if (tok.HasMoreTokens()) a.leftJoystickY = wxAtoi(tok.GetNextToken());
+    if (tok.HasMoreTokens()) a.rightJoystickX = wxAtoi(tok.GetNextToken());
+    if (tok.HasMoreTokens()) a.rightJoystickY = wxAtoi(tok.GetNextToken());
     if (tok.HasMoreTokens()) a.delayMs = wxAtoi(tok.GetNextToken());
     if (tok.HasMoreTokens()) a.encounterIncrement = wxAtoi(tok.GetNextToken());
     return a;

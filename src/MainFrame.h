@@ -1,5 +1,6 @@
 #pragma once
 #include <wx/wx.h>
+#include "VirtualController.h"
 #include "ScaledBitmap.h"
 #include "VideoStream.h"
 #include "MacroEditorFrame.h"
@@ -38,6 +39,8 @@ private:
 
     //Selection from controllerTypeRadioBox
     ControllerType m_controllerType = xinput;
+
+    VirtualController* m_controller = nullptr;
 
     //Local device ip from deviceIPCtrl
     wxString m_deviceIP;

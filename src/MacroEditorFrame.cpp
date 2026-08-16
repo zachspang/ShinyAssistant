@@ -7,7 +7,6 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent, MacroLibrary* library, cons
     Bind(wxEVT_CLOSE_WINDOW, &MacroEditorFrame::OnClose, this);
 
     wxArrayString macroCommands;
-    //TODO: Load from saved macros
 
     m_macroCommandsBox = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(100,300), macroCommands, wxLB_ALWAYS_SB);
     m_macroCommandsBox->Bind(wxEVT_LISTBOX, &MacroEditorFrame::OnMacroListSelected, this);
@@ -23,7 +22,8 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent, MacroLibrary* library, cons
 
     actionList.Add("Press Button");
     actionList.Add("Release Button");
-    actionList.Add("Move Joystick");
+    actionList.Add("Move Left Joystick");
+    actionList.Add("Move Right Joystick");
     actionList.Add("Delay");
     actionList.Add("Check For Shiny");
     actionList.Add("Add to encounter number");
@@ -141,16 +141,33 @@ void MacroEditorFrame::PopulateActionSettings(wxWindow* settingsParent, const wx
             m_actionSettingSizer->Add(buttonChoice, wxSizerFlags().Center().Border(wxLEFT, 5));
             break;
         }
-        case ActionType::MoveJoystick: {
+        case ActionType::MoveLeftJoystick: {
             wxStaticText* xLabel = new wxStaticText(settingsParent, wxID_ANY, "X: ");
             wxSpinCtrl* xSpin = new wxSpinCtrl(settingsParent, wxID_ANY, wxEmptyString,
-                wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS | wxSP_WRAP, -100, 100, m_currentAction.joystickX);
-            xSpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnJoystickXChanged, this);
+                wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS | wxSP_WRAP, -100, 100, m_currentAction.leftJoystickX);
+            xSpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnLeftJoystickXChanged, this);
 
             wxStaticText* yLabel = new wxStaticText(settingsParent, wxID_ANY, "Y: ");
             wxSpinCtrl* ySpin = new wxSpinCtrl(settingsParent, wxID_ANY, wxEmptyString,
-                wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS | wxSP_WRAP, -100, 100, m_currentAction.joystickY);
-            ySpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnJoystickYChanged, this);
+                wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS | wxSP_WRAP, -100, 100, m_currentAction.leftJoystickY);
+            ySpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnLeftJoystickYChanged, this);
+
+            m_actionSettingSizer->Add(xLabel, wxSizerFlags().Center());
+            m_actionSettingSizer->Add(xSpin, wxSizerFlags().Center().Border(wxLEFT, 5));
+            m_actionSettingSizer->Add(yLabel, wxSizerFlags().Center().Border(wxLEFT, 15));
+            m_actionSettingSizer->Add(ySpin, wxSizerFlags().Center().Border(wxLEFT, 5));
+            break;
+        }
+        case ActionType::MoveRightJoystick: {
+            wxStaticText* xLabel = new wxStaticText(settingsParent, wxID_ANY, "X: ");
+            wxSpinCtrl* xSpin = new wxSpinCtrl(settingsParent, wxID_ANY, wxEmptyString,
+                wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS | wxSP_WRAP, -100, 100, m_currentAction.rightJoystickX);
+            xSpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnRightJoystickXChanged, this);
+
+            wxStaticText* yLabel = new wxStaticText(settingsParent, wxID_ANY, "Y: ");
+            wxSpinCtrl* ySpin = new wxSpinCtrl(settingsParent, wxID_ANY, wxEmptyString,
+                wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS | wxSP_WRAP, -100, 100, m_currentAction.rightJoystickY);
+            ySpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnRightJoystickYChanged, this);
 
             m_actionSettingSizer->Add(xLabel, wxSizerFlags().Center());
             m_actionSettingSizer->Add(xSpin, wxSizerFlags().Center().Border(wxLEFT, 5));
@@ -223,13 +240,23 @@ void MacroEditorFrame::OnButtonChoiceChanged(wxCommandEvent& evt) {
     CommitIfEditingExisting();
 }
 
-void MacroEditorFrame::OnJoystickXChanged(wxSpinEvent& evt) {
-    m_currentAction.joystickX = evt.GetPosition();
+void MacroEditorFrame::OnLeftJoystickXChanged(wxSpinEvent& evt) {
+    m_currentAction.leftJoystickX = evt.GetPosition();
     CommitIfEditingExisting();
 }
 
-void MacroEditorFrame::OnJoystickYChanged(wxSpinEvent& evt) {
-    m_currentAction.joystickY = evt.GetPosition();
+void MacroEditorFrame::OnLeftJoystickYChanged(wxSpinEvent& evt) {
+    m_currentAction.leftJoystickY= evt.GetPosition();
+    CommitIfEditingExisting();
+}
+
+void MacroEditorFrame::OnRightJoystickXChanged(wxSpinEvent& evt) {
+    m_currentAction.rightJoystickX = evt.GetPosition();
+    CommitIfEditingExisting();
+}
+
+void MacroEditorFrame::OnRightJoystickYChanged(wxSpinEvent& evt) {
+    m_currentAction.rightJoystickY= evt.GetPosition();
     CommitIfEditingExisting();
 }
 

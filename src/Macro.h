@@ -9,7 +9,7 @@
 //Owns a vector of actions and a pointer to a VirtualController to playback the actions
 class Macro {
 public:
-    explicit Macro(const wxString& name = wxEmptyString) : m_name(name) {}
+    Macro(const wxString& name = wxEmptyString);
 
     const wxString& GetName() const { return m_name; }
     void SetName(const wxString& name) { m_name = name; }
@@ -22,7 +22,7 @@ public:
     void UpdateAction(size_t index, const MacroAction& action);
     void RemoveAction(size_t index);
 
-    void Play(const std::atomic<bool>& keepRunning);
+    void Play(const std::atomic<bool>& keepRunning, VirtualController* &controller);
 
     //Serialize a block of lines representing just this macro: name, action count, then one line per action.
     wxArrayString SerializeLines() const;
@@ -32,5 +32,4 @@ public:
 private:
     wxString m_name;
     std::vector<MacroAction> m_actions;
-    VirtualController* m_controller;
 };

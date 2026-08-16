@@ -40,8 +40,10 @@ private:
     void OnClose(wxCloseEvent& evt);
     void OnActionChoice(wxCommandEvent& evt);
     void OnButtonChoiceChanged(wxCommandEvent& evt);
-    void OnJoystickXChanged(wxSpinEvent& evt);
-    void OnJoystickYChanged(wxSpinEvent& evt);
+    void OnLeftJoystickXChanged(wxSpinEvent& evt);
+    void OnLeftJoystickYChanged(wxSpinEvent& evt);
+    void OnRightJoystickXChanged(wxSpinEvent& evt);
+    void OnRightJoystickYChanged(wxSpinEvent& evt);
     void OnDelayChanged(wxSpinEvent& evt);
     void OnEncounterIncrementChanged(wxSpinEvent& evt);
     void OnAddAction(wxCommandEvent& evt);

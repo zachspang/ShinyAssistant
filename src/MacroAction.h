@@ -4,7 +4,8 @@
 enum class ActionType {
     PressButton,
     ReleaseButton,
-    MoveJoystick,
+    MoveLeftJoystick,
+    MoveRightJoystick,
     Delay,
     CheckForShiny,
     AddToEncounterNumber,
@@ -29,9 +30,13 @@ struct MacroAction {
     //Press release button
     ControllerButton button = ControllerButton::A;
 
-    //Move joystick to these coords
-    int joystickX = 0;   // -100..100
-    int joystickY = 0;   // -100..100
+    //Move left joystick to these coords
+    int leftJoystickX = 0;   // -100..100
+    int leftJoystickY = 0;   // -100..100
+
+    //Move right joystick to these coords
+    int rightJoystickX = 0;   // -100..100
+    int rightJoystickY = 0;   // -100..100
 
     //Delay
     int delayMs = 0;     // 0..100000

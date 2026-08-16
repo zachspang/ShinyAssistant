@@ -3,10 +3,13 @@
 
 class VirtualController {
 public:
+    virtual ~VirtualController() = default;
     void SendAction(const MacroAction& action);
-
-private:
-    void PressButton(ControllerButton button);
-    void ReleaseButton(ControllerButton button);
-    void MoveJoystick(int x, int y);
+    virtual void Reset() = 0;
+    
+protected:
+    virtual void PressButton(ControllerButton button) = 0;
+    virtual void ReleaseButton(ControllerButton button) = 0;
+    virtual void MoveLeftJoystick(int x, int y) = 0;
+    virtual void MoveRightJoystick(int x, int y) = 0;
 };
