@@ -81,16 +81,19 @@ private:
     //Used for showing logs
     wxTextCtrl* m_logCtrl = nullptr;
 
+    //Spin controls for the bounds of the detection
+    wxSpinCtrl* m_detectionXCtrl = nullptr;
+    wxSpinCtrl* m_detectionYCtrl = nullptr;
+    wxSpinCtrl* m_detectionWCtrl = nullptr;
+    wxSpinCtrl* m_detectionHCtrl = nullptr;
+
     void OnEncounterUpdate(wxSpinEvent& evt);
     void OnVCToggle(wxCommandEvent& evt);
     void OnVCTypeChange(wxCommandEvent& evt);
     void OnIPConfirm(wxCommandEvent& evt);
     void UpdateVideo(wxTimerEvent& evt);
     void OnTestDetect(wxCommandEvent& evt);
-    void OnDetectionXUpdate(wxCommandEvent& evt);
-    void OnDetectionYUpdate(wxCommandEvent& evt);
-    void OnDetectionWUpdate(wxCommandEvent& evt);
-    void OnDetectionHUpdate(wxCommandEvent& evt);
+    void OnDetectionRectChanged(wxSpinEvent& evt);
     void OnMacroChange(wxCommandEvent& evt);
     void OnDeleteMacro(wxCommandEvent& evt);
     void OnEditMacro(wxCommandEvent& evt);

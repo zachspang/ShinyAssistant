@@ -137,39 +137,43 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     RefreshMacroChoice();
 
-    //TODO: Move detection sizing controls
-    
-    // wxSpinCtrl* detectionX = new wxSpinCtrl(rightPanel, wxID_ANY, "78", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 78);
-    // detectionX->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionXUpdate, this);
-    // detectionX->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionXUpdate, this);
+    wxBoxSizer* detectionXYSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxStaticText* detectionXLabel = new wxStaticText(rightPanel, wxID_ANY, "X: ");
+    m_detectionXCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "78", wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, 78);
+    m_detectionXCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionRectChanged, this);
+    wxStaticText* detectionYLabel = new wxStaticText(rightPanel, wxID_ANY, "Y: ");
+    m_detectionYCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "365", wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, 365);
+    m_detectionYCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionRectChanged, this);
+    detectionXYSizer->Add(detectionXLabel, wxSizerFlags().CenterVertical());
+    detectionXYSizer->Add(m_detectionXCtrl, wxSizerFlags().CenterVertical().Border(wxRIGHT, 10));
+    detectionXYSizer->Add(detectionYLabel, wxSizerFlags().CenterVertical());
+    detectionXYSizer->Add(m_detectionYCtrl, wxSizerFlags().CenterVertical());
 
-    // wxSpinCtrl* detectionY = new wxSpinCtrl(rightPanel, wxID_ANY, "365", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 365);
-    // detectionY->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionYUpdate, this);
-    // detectionY->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionYUpdate, this);
+    wxBoxSizer* detectionWHSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxStaticText* detectionWLabel = new wxStaticText(rightPanel, wxID_ANY, "W: ");
+    m_detectionWCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "293", wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, 293);
+    m_detectionWCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionRectChanged, this);
+    wxStaticText* detectionHLabel = new wxStaticText(rightPanel, wxID_ANY, "H: ");
+    m_detectionHCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "51", wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, 51);
+    m_detectionHCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionRectChanged, this);
+    detectionWHSizer->Add(detectionWLabel, wxSizerFlags().CenterVertical());
+    detectionWHSizer->Add(m_detectionWCtrl, wxSizerFlags().CenterVertical().Border(wxRIGHT, 10));
+    detectionWHSizer->Add(detectionHLabel, wxSizerFlags().CenterVertical());
+    detectionWHSizer->Add(m_detectionHCtrl, wxSizerFlags().CenterVertical());
 
-    // wxSpinCtrl* detectionW = new wxSpinCtrl(rightPanel, wxID_ANY, "293", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 293);
-    // detectionW->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionWUpdate, this);
-    // detectionW->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionWUpdate, this);
-
-    // wxSpinCtrl* detectionH = new wxSpinCtrl(rightPanel, wxID_ANY, "51", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP | wxTE_PROCESS_ENTER, 0, 4000, 51);
-    // detectionH->Bind(wxEVT_TEXT_ENTER, &MainFrame::OnDetectionHUpdate, this);
-    // detectionH->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionHUpdate, this);
-
-    //
-
+    wxStaticBoxSizer* detectionBoundsSizer = new wxStaticBoxSizer(wxVERTICAL, rightPanel, "Detection Bounds");
+    detectionBoundsSizer->Add(detectionXYSizer, wxSizerFlags().Border(wxALL, 5).Center());
+    detectionBoundsSizer->Add(detectionWHSizer, wxSizerFlags().Border(wxALL, 5).Center());
 
     rightSizer->AddSpacer(20);
     rightSizer->Add(encounterCtrlSizer, wxSizerFlags().Border(wxALL, 10).Center());
+    rightSizer->Add(detectionBoundsSizer, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(macroChoiceSizer, wxSizerFlags().Border(wxALL, 5).Center());
     rightSizer->Add(macroButtonSizer, wxSizerFlags().Center());
     rightSizer->Add(editMacroButton, wxSizerFlags().Border(wxALL, 5).Center());
     rightSizer->Add(vcCheckBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(m_controllerTypeRadioBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(deviceIPSizer, wxSizerFlags().Border(wxALL, 10).Center());
-    // rightSizer->Add(detectionX);
-    // rightSizer->Add(detectionY);
-    // rightSizer->Add(detectionW);
-    // rightSizer->Add(detectionH);
 
     rightPanel->SetSizer(rightSizer);
     rightSizer->SetSizeHints(rightPanel);
@@ -279,29 +283,12 @@ void MainFrame::OnTestDetect(wxCommandEvent& evt){
     detectionThread.detach();
 }
 
-void MainFrame::OnDetectionXUpdate(wxCommandEvent& evt){
-    wxSpinCtrl* spin = static_cast<wxSpinCtrl*>(evt.GetEventObject());
-    int value = spin->GetValue();
-    m_videoStream->m_rectX = value;
-}
-
-void MainFrame::OnDetectionYUpdate(wxCommandEvent& evt){
-    wxSpinCtrl* spin = static_cast<wxSpinCtrl*>(evt.GetEventObject());
-    int value = spin->GetValue();
-    m_videoStream->m_rectY = value;
-}
-
-void MainFrame::OnDetectionWUpdate(wxCommandEvent& evt){
-    wxSpinCtrl* spin = static_cast<wxSpinCtrl*>(evt.GetEventObject());
-    int value = spin->GetValue();
-    m_videoStream->m_rectW = value; 
-}
-
-void MainFrame::OnDetectionHUpdate(wxCommandEvent& evt){
-    wxSpinCtrl* spin = static_cast<wxSpinCtrl*>(evt.GetEventObject());
-    int value = spin->GetValue();
-    m_videoStream->m_rectH = value;
-}
+void MainFrame::OnDetectionRectChanged(wxSpinEvent&) {
+    m_videoStream->m_rectX = m_detectionXCtrl->GetValue();
+    m_videoStream->m_rectY = m_detectionYCtrl->GetValue();
+    m_videoStream->m_rectW = m_detectionWCtrl->GetValue();
+    m_videoStream->m_rectH = m_detectionHCtrl->GetValue();
+};
 
 void MainFrame::OnMacroChange(wxCommandEvent& evt){
     StopMacroThread();
