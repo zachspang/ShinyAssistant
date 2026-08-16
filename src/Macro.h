@@ -4,6 +4,7 @@
 #include <wx/arrstr.h>
 #include "MacroAction.h"
 #include "VirtualController.h"
+#include <atomic>
 
 //Owns a vector of actions and a pointer to a VirtualController to playback the actions
 class Macro {
@@ -21,7 +22,7 @@ public:
     void UpdateAction(size_t index, const MacroAction& action);
     void RemoveAction(size_t index);
 
-    void Play();
+    void Play(const std::atomic<bool>& keepRunning);
 
     //Serialize a block of lines representing just this macro: name, action count, then one line per action.
     wxArrayString SerializeLines() const;

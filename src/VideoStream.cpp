@@ -1,14 +1,16 @@
 #include "VideoStream.h"
+#include "Logging.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <thread>
+#include <wx/string.h>
 
 VideoStream::VideoStream(){
-    std::cout << "VideoStream Instantiated" << std::endl;
+    Log("VideoStream Instantiated");
 }
 
 void VideoStream::StartCapture() {
-    std::cout << "Starting capture" << std::endl;
+    Log("Starting capture");
 
     std::thread capThread([this]() {
         cv::VideoCapture cap(0, cv::CAP_ANY);
@@ -16,6 +18,7 @@ void VideoStream::StartCapture() {
         // cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1440);
 
         if (!cap.isOpened()) {
+            Log("ERROR: Could not open camera.");
             std::cerr << "ERROR: Could not open camera." << std::endl;
             return;
         }
@@ -27,7 +30,7 @@ void VideoStream::StartCapture() {
             std::this_thread::sleep_for(std::chrono::milliseconds(30));
         }
 
-        std::cout << "Camera opened: " << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x" << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << std::endl;
+        Log(wxString::Format("Camera opened %.0fx%.0f", cap.get(cv::CAP_PROP_FRAME_WIDTH), cap.get(cv::CAP_PROP_FRAME_HEIGHT) ));
         auto lastFpsTime = std::chrono::steady_clock::now();
         double currentFps = 0.0;
 
@@ -129,16 +132,16 @@ bool VideoStream::checkShiny() {
 
     if (m_prevDetectionFrame.empty() || m_prevDetectionFrame.size() != croppedFrame.size()) {
         m_prevDetectionFrame = croppedFrame;
-        std::cout << "First shiny check" << std::endl;
+        Log("First shiny check");
         return false;
     }
 
     double similarity = calcSimilarity(m_prevDetectionFrame, croppedFrame);
-    std::cout << "Similarity Score: " << similarity << std::endl;
+    Log(wxString::Format("Similarity Score: %.2f", similarity));
 
     if (m_avgSimilarity - similarity > 0.25){
-        std::cout << "Average Score: " << m_avgSimilarity << std::endl;
-        std::cout << "!!! SHINY DETECTED !!!" << std::endl;
+        Log(wxString::Format("Average Score: %.2f", m_avgSimilarity));
+        Log("!!! SHINY DETECTED !!!");
         return true;
     }
     

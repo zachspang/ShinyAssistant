@@ -2,10 +2,12 @@
 #include "ScaledBitmap.h"
 #include "VideoStream.h"
 #include "MacroEditorFrame.h"
+#include "Logging.h"
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
+#include <wx/textctrl.h>
 #include <iostream>
 #include <thread>
 
@@ -35,7 +37,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxChoice* webcamChoice = new wxChoice(leftPanel, wxID_ANY, wxDefaultPosition, wxSize(100, 40), webcams);
     webcamChoice->SetSelection(0);
 
-    m_videoBitmap = new ScaledBitmap(leftPanel, "C:/Users/spang/Desktop/Projects/ShinyAssistant/battletemp.png");
+    m_videoBitmap = new ScaledBitmap(leftPanel);
     m_videoTimer = new wxTimer();
     m_videoTimer->Bind(wxEVT_TIMER, &MainFrame::UpdateVideo, this);
     bool started = m_videoTimer->Start(33);
@@ -47,7 +49,10 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
     m_encounterCounter->SetLabel("Encounters: 0");
 
-    //TODO: Add log under video stream to display logs in app instead of in cout
+    m_logCtrl = new wxTextCtrl(leftPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 150), wxTE_MULTILINE | wxTE_READONLY);
+    m_logCtrl->SetMinSize(wxSize(-1, 150));
+    //wxLogTextCtrl takes ownership; wxWidgets deletes it at shutdown
+    wxLog::SetActiveTarget(new wxLogTextCtrl(m_logCtrl));
 
     m_macroToggleButton = new wxButton(leftPanel, wxID_ANY, "Start Macro");
     m_macroToggleButton->Bind(wxEVT_BUTTON, &MainFrame::OnMacroToggle, this);
@@ -57,6 +62,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     leftSizer->AddSpacer(20);
     leftSizer->Add(m_videoBitmap, wxSizerFlags().Expand().Shaped().Border(wxALL, 10).Center());
     leftSizer->Add(m_encounterCounter, wxSizerFlags().CenterHorizontal().Border(wxLEFT|wxRIGHT, 5));
+    leftSizer->Add(m_logCtrl, wxSizerFlags().Expand().Border(wxALL, 5));
     leftSizer->Add(m_macroToggleButton, wxSizerFlags().Center());
     
     leftPanel->SetSizer(leftSizer);
@@ -209,6 +215,26 @@ void MainFrame::RefreshMacroChoice() {
     UpdateSelectedMacroPointer();
 }
 
+void MainFrame::StartMacroThread() {
+    if (!m_selectedMacro || m_macroRunning) return;
+
+    Macro macroCopy = *m_selectedMacro; //snapshot of macro, thread never touches the library after this
+    m_macroRunning = true;
+
+    m_macroThread = std::thread([this, macroCopy]() mutable {
+        Log(wxString::Format("Macro \"%s\" started", macroCopy.GetName()));
+        while (m_macroRunning) {
+            macroCopy.Play(m_macroRunning);
+        }
+        Log(wxString::Format("Macro \"%s\" stopped", macroCopy.GetName()));
+    });
+}
+
+void MainFrame::StopMacroThread() {
+    m_macroRunning = false;
+    if (m_macroThread.joinable()) m_macroThread.join(); //wait for it to actually stop
+}
+
 //
 // Event handler implementations
 //
@@ -278,7 +304,7 @@ void MainFrame::OnDetectionHUpdate(wxCommandEvent& evt){
 }
 
 void MainFrame::OnMacroChange(wxCommandEvent& evt){
-    //StopMacroThread();
+    StopMacroThread();
     m_macroToggleButton->SetLabel("Start Macro");
     UpdateSelectedMacroPointer();
 }
@@ -287,7 +313,7 @@ void MainFrame::OnEditMacro(wxCommandEvent& evt){
     int index = m_macroChoice->GetSelection();
     if (index == wxNOT_FOUND || index >= (int)m_macroLibrary.GetMacros().size()) return;
 
-    //StopMacroThread();
+    StopMacroThread();
     m_macroToggleButton->SetLabel("Start Macro");
 
     m_macroEditorFrame->EditMacro((size_t)index);
@@ -298,7 +324,7 @@ void MainFrame::OnEditMacro(wxCommandEvent& evt){
 }
 
 void MainFrame::OnCreateMacro(wxCommandEvent& evt){
-    //StopMacroThread();
+    StopMacroThread();
     m_macroToggleButton->SetLabel("Start Macro");
 
     m_macroEditorFrame->EditNewMacro();
@@ -317,7 +343,7 @@ void MainFrame::OnDeleteMacro(wxCommandEvent& evt){
         "Delete Macro", wxYES_NO | wxICON_WARNING, this);
     if (result != wxYES) return;
 
-    //StopMacroThread();
+    StopMacroThread();
     m_macroToggleButton->SetLabel("Start Macro");
 
     m_macroLibrary.RemoveMacro((size_t)index);
@@ -335,11 +361,11 @@ void MainFrame::OnMacroEditorClosed(wxShowEvent& evt) {
 }
 
 void MainFrame::OnMacroToggle(wxCommandEvent& evt) {
-    // if (m_macroRunning) {
-    //     StopMacroThread();
-    //     m_macroToggleButton->SetLabel("Start Macro");
-    // } else {
-    //     StartMacroThread();
-    //     m_macroToggleButton->SetLabel("Stop Macro");
-    // }
+    if (m_macroRunning) {
+        StopMacroThread();
+        m_macroToggleButton->SetLabel("Start Macro");
+    } else {
+        StartMacroThread();
+        m_macroToggleButton->SetLabel("Stop Macro");
+    }
 }

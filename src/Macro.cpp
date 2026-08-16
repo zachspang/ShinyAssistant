@@ -2,6 +2,7 @@
 #include <wx/textfile.h>
 #include <wx/filefn.h>
 #include <wx/utils.h>
+#include <chrono>
 
 size_t Macro::InsertAction(size_t index, const MacroAction& action) {
     if (index > m_actions.size()) index = m_actions.size();
@@ -17,11 +18,18 @@ void Macro::RemoveAction(size_t index) {
     if (index < m_actions.size()) m_actions.erase(m_actions.begin() + index);
 }
 
-void Macro::Play() {
+void Macro::Play(const std::atomic<bool>& keepRunning) {
     for (const auto& action : m_actions) {
+        if (!keepRunning) return; //check before every action
+
         if (action.type == ActionType::Delay) {
-            //TODO: Change to more precise delay
-            wxMilliSleep(action.delayMs);
+            //Busy loop for duration of delay or until keepRunning == false
+            auto start = std::chrono::steady_clock::now();
+            while (keepRunning) {
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - start).count();
+                if (elapsed >= action.delayMs) break;
+            }
         } else if (action.type == ActionType::CheckForShiny) {
             //TODO: Call videoStream.checkShiny() and stop playing based on result
             //TODO: If shiny send have discord bot ping user with current frame to show shiny

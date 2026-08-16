@@ -4,6 +4,8 @@
 #include "VideoStream.h"
 #include "MacroEditorFrame.h"
 #include "MacroLibrary.h"
+#include <thread>
+#include <atomic>
 
 class MainFrame : public wxFrame
 {
@@ -64,6 +66,8 @@ private:
     Macro* m_selectedMacro = nullptr;
 
     void UpdateSelectedMacroPointer();
+    std::thread m_macroThread;
+    std::atomic<bool> m_macroRunning{false};
 
     //True while MacroEditorFrame is open, used to block Start while editing
     bool m_macroEditorOpen = false;
@@ -73,6 +77,9 @@ private:
 
     //Rebuilds m_macroChoice's items from m_macroLibrary, preserving selection where possible
     void RefreshMacroChoice();
+
+    //Used for showing logs
+    wxTextCtrl* m_logCtrl = nullptr;
 
     void OnEncounterUpdate(wxSpinEvent& evt);
     void OnVCToggle(wxCommandEvent& evt);
@@ -90,4 +97,6 @@ private:
     void OnCreateMacro(wxCommandEvent& evt);
     void OnMacroEditorClosed(wxShowEvent& evt);
     void OnMacroToggle(wxCommandEvent& evt);
+    void StartMacroThread();
+    void StopMacroThread();
 };
