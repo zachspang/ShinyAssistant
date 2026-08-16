@@ -16,7 +16,8 @@ public:
     void SwitchCamera(int deviceIndex); // Stops current capture, starts a new one on deviceIndex
     int GetWebcamCount(); // Counts number of webcams user has connected. Returns a default value of 2 with debugger attached
     wxImage GetWxImageFromFrame(); // Convert frame to wxImage
-    bool checkShiny(); // Compares the current detection to the last, if it is very different assume it is a shiny
+    bool checkShiny(const std::atomic<bool>& keepRunning); // Compares the current detection to the last, if it is very different assume it is a shiny
+    void resetDetectionFrame();
     std::atomic<int> m_rectX = 78;
     std::atomic<int> m_rectY = 365;
     std::atomic<int> m_rectW = 293;

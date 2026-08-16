@@ -30,6 +30,9 @@ private:
     
     //Static text that displays encounter number under video
     wxStaticText* m_encounterCounter;
+    wxSpinCtrl* m_encounterCtrl;
+    void OnEncounterIncrement(int amount); // called via CallAfter from the macro thread
+    int m_encounterValue = 0;
 
     //True if virtual controller checkbox is enabled
     bool m_vcEnabled = false;
@@ -91,7 +94,7 @@ private:
     wxSpinCtrl* m_detectionHCtrl = nullptr;
 
     void OnWebcamChanged(wxCommandEvent& evt);
-    void OnEncounterUpdate(wxSpinEvent& evt);
+    void OnEncounterCtrlUpdate(wxSpinEvent& evt);
     void OnVCToggle(wxCommandEvent& evt);
     void OnVCTypeChange(wxCommandEvent& evt);
     void OnIPConfirm(wxCommandEvent& evt);

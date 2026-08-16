@@ -84,10 +84,10 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     wxBoxSizer* encounterCtrlSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* encounterCtrlLabel = new wxStaticText(rightPanel, wxID_ANY, "Set Encounters: ");
-    wxSpinCtrl* encounterCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP, 0, 100000, 0);
+    m_encounterCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP, 0, 100000, 0);
     encounterCtrlSizer->Add(encounterCtrlLabel, wxSizerFlags().CenterVertical());
-    encounterCtrlSizer->Add(encounterCtrl, wxSizerFlags().CenterVertical());
-    encounterCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnEncounterUpdate, this);
+    encounterCtrlSizer->Add(m_encounterCtrl, wxSizerFlags().CenterVertical());
+    m_encounterCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnEncounterCtrlUpdate, this);
 
     wxCheckBox* vcCheckBox = new wxCheckBox(rightPanel, wxID_ANY, "Enable Virtual Controller");
     vcCheckBox->Bind(wxEVT_CHECKBOX, &MainFrame::OnVCToggle, this);
@@ -236,23 +236,43 @@ void MainFrame::StartMacroThread() {
 
         default:
             Log("Error: Attempted to start macro with unimplemented controller");
-            m_macroToggleButton->SetLabel("Start Macro");
             return;
     }
-    
+
+    m_macroToggleButton->SetLabel("Stop Macro");
+
     Macro macroCopy = *m_selectedMacro; //snapshot of macro, thread never touches the library after this
     m_macroRunning = true;
 
-    m_macroThread = std::thread([this, macroCopy]() mutable {
+    //Lambda wrapper to pass into Macro.Play() so it can safely increment encouterCounter from a different thread
+    auto OnEncounterIncrementWrapper = [this](int amount) {
+        wxTheApp->CallAfter([this, amount]() {
+            OnEncounterIncrement(amount);
+        });
+    };
+
+    //Reset the previous detection frame so the first detection on this run is considered the baseline
+    m_videoStream->resetDetectionFrame();
+
+    //Macro loop thread, keeps looping macro until m_macroRunning = false
+    m_macroThread = std::thread([this, macroCopy, OnEncounterIncrementWrapper]() mutable {
         Log(wxString::Format("Macro \"%s\" started", macroCopy.GetName()));
+
         while (m_macroRunning) {
-            macroCopy.Play(m_macroRunning, m_controller);
+            bool stopMacro = macroCopy.Play(m_macroRunning, m_controller, m_videoStream, OnEncounterIncrementWrapper);
+            if (stopMacro) {
+                wxTheApp->CallAfter([this]() {
+                    StopMacroThread(); //join from ui thread
+                });
+                break;
+            }
         }
         Log(wxString::Format("Macro \"%s\" stopped", macroCopy.GetName()));
     });
 }
 
 void MainFrame::StopMacroThread() {
+    m_macroToggleButton->SetLabel("Start Macro");
     m_macroRunning = false;
     if (m_macroThread.joinable()) m_macroThread.join(); //wait for it to actually stop
 }
@@ -269,11 +289,18 @@ void MainFrame::OnWebcamChanged(wxCommandEvent& evt){
     m_videoStream->SwitchCamera(deviceIndex);
 }
 
-void MainFrame::OnEncounterUpdate(wxSpinEvent& evt){
+void MainFrame::OnEncounterCtrlUpdate(wxSpinEvent& evt){
     int val = evt.GetValue();
     m_encounterCounter->SetLabel(wxString::Format("Encounters: %d", val));
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
 };
+
+void MainFrame::OnEncounterIncrement(int amount) {
+    m_encounterValue += amount;
+    m_encounterCounter->SetLabel(wxString::Format("Encounters: %d", m_encounterValue));
+    m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
+    m_encounterCtrl->SetValue(m_encounterValue);
+}
 
 void MainFrame::OnVCToggle(wxCommandEvent& evt){
     m_vcEnabled = evt.IsChecked();
@@ -284,7 +311,6 @@ void MainFrame::OnVCToggle(wxCommandEvent& evt){
 
     if (!m_vcEnabled && m_macroRunning) {
         StopMacroThread();
-        m_macroToggleButton->SetLabel("Start Macro");
     }
 }
 
@@ -296,7 +322,6 @@ void MainFrame::OnVCTypeChange(wxCommandEvent& evt){
 
     if (m_macroRunning) {
         StopMacroThread();
-        m_macroToggleButton->SetLabel("Start Macro");
     }
 }
 
@@ -311,14 +336,6 @@ void MainFrame::UpdateVideo(wxTimerEvent& evt){
     m_videoBitmap->SetImage(m_videoStream->GetWxImageFromFrame());
 }
 
-//TODO: Remove this, checkShiny() will get called from the macro thread and actually handle the result
-void MainFrame::OnTestDetect(wxCommandEvent& evt){
-    std::thread detectionThread([this]() {
-        m_videoStream->checkShiny();
-    });
-    detectionThread.detach();
-}
-
 void MainFrame::OnDetectionRectChanged(wxSpinEvent&) {
     m_videoStream->m_rectX = m_detectionXCtrl->GetValue();
     m_videoStream->m_rectY = m_detectionYCtrl->GetValue();
@@ -328,7 +345,6 @@ void MainFrame::OnDetectionRectChanged(wxSpinEvent&) {
 
 void MainFrame::OnMacroChange(wxCommandEvent& evt){
     StopMacroThread();
-    m_macroToggleButton->SetLabel("Start Macro");
     UpdateSelectedMacroPointer();
 }
 
@@ -337,7 +353,6 @@ void MainFrame::OnEditMacro(wxCommandEvent& evt){
     if (index == wxNOT_FOUND || index >= (int)m_macroLibrary.GetMacros().size()) return;
 
     StopMacroThread();
-    m_macroToggleButton->SetLabel("Start Macro");
 
     m_macroEditorFrame->EditMacro((size_t)index);
 
@@ -348,7 +363,6 @@ void MainFrame::OnEditMacro(wxCommandEvent& evt){
 
 void MainFrame::OnCreateMacro(wxCommandEvent& evt){
     StopMacroThread();
-    m_macroToggleButton->SetLabel("Start Macro");
 
     m_macroEditorFrame->EditNewMacro();
 
@@ -367,7 +381,6 @@ void MainFrame::OnDeleteMacro(wxCommandEvent& evt){
     if (result != wxYES) return;
 
     StopMacroThread();
-    m_macroToggleButton->SetLabel("Start Macro");
 
     m_macroLibrary.RemoveMacro((size_t)index);
     m_macroLibrary.SaveToFile(m_macroFilePath);
@@ -386,11 +399,9 @@ void MainFrame::OnMacroEditorClosed(wxShowEvent& evt) {
 void MainFrame::OnMacroToggle(wxCommandEvent& evt) {
     if (m_macroRunning) {
         StopMacroThread();
-        m_macroToggleButton->SetLabel("Start Macro");
     } else if (!m_vcEnabled) {
         Log("Virtual Controller Disabled, cant start macro");
     } else {
-        m_macroToggleButton->SetLabel("Stop Macro");
         StartMacroThread();
     }
 }

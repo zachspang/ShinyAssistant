@@ -1,4 +1,5 @@
 #pragma once
+#include "VideoStream.h"
 #include <vector>
 #include <wx/string.h>
 #include <wx/arrstr.h>
@@ -22,7 +23,8 @@ public:
     void UpdateAction(size_t index, const MacroAction& action);
     void RemoveAction(size_t index);
 
-    void Play(const std::atomic<bool>& keepRunning, VirtualController* &controller);
+    //Returns true of macro should stop looping
+    bool Play(const std::atomic<bool>& keepRunning, VirtualController* &controller, VideoStream* videoStream, const std::function<void(int)>& OnEncounterIncrement);
 
     //Serialize a block of lines representing just this macro: name, action count, then one line per action.
     wxArrayString SerializeLines() const;

@@ -145,7 +145,7 @@ double calcSimilarity(const cv::Mat& img1, const cv::Mat& img2) {
     return std::max(0.0, std::min(1.0, (maxVal + 1.0) / 2.0)); // TM_CCOEFF_NORMED range is [-1,1]
 }
 
-bool VideoStream::checkShiny() {
+bool VideoStream::checkShiny(const std::atomic<bool>& keepRunning) {
     cv::Mat croppedFrame;
     {
         std::lock_guard<std::mutex> lock(m_frameMutex);
@@ -156,14 +156,20 @@ bool VideoStream::checkShiny() {
 
     if (m_prevDetectionFrame.empty() || m_prevDetectionFrame.size() != croppedFrame.size()) {
         m_prevDetectionFrame = croppedFrame;
-        Log("First shiny check");
+        Log("First shiny check assuming this is not shiny, if it is shiny you have 10 seconds to stop the macro");
+
+        //Sleep in small chunks to respond to the thread joining
+        for (int i = 0; i < 10000; i += 50) {
+            if (!keepRunning) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
         return false;
     }
 
     double similarity = calcSimilarity(m_prevDetectionFrame, croppedFrame);
     Log(wxString::Format("Similarity Score: %.2f", similarity));
 
-    if (m_avgSimilarity - similarity > 0.25){
+    if (m_avgSimilarity - similarity > 0.17){
         Log(wxString::Format("Average Score: %.2f", m_avgSimilarity));
         Log("!!! SHINY DETECTED !!!");
         return true;
@@ -175,6 +181,10 @@ bool VideoStream::checkShiny() {
     m_prevDetectionFrame = croppedFrame;
     //cv::imshow("OpenCV debug view", croppedFrame);
     return false;
+}
+
+void VideoStream::resetDetectionFrame() {
+    m_prevDetectionFrame.release();
 }
 
 void VideoStream::StopCapture() {
