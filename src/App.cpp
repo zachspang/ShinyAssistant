@@ -13,7 +13,7 @@ bool App::OnInit() {
     }
     
     MainFrame* mainFrame = new MainFrame("ShinyAssistant");
-    mainFrame->SetClientSize(800, 450);
+    mainFrame->SetClientSize(800, 650);
     mainFrame->Center();
     mainFrame->Show();
     return true;
