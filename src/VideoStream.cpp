@@ -4,18 +4,44 @@
 #include <iostream>
 #include <thread>
 #include <wx/string.h>
+#include <windows.h>
 
 VideoStream::VideoStream(){
     Log("VideoStream Instantiated");
 }
 
-void VideoStream::StartCapture() {
-    Log("Starting capture");
+VideoStream::~VideoStream(){
+    StopCapture();
+}
 
-    std::thread capThread([this]() {
-        cv::VideoCapture cap(0, cv::CAP_ANY);
-        // cap.set(cv::CAP_PROP_FRAME_WIDTH, 2560);
-        // cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1440);
+int VideoStream::GetWebcamCount() {
+    /* Opening captures while debugging with GDB takes a really long time
+       and I dont really care enough to troubleshoot it more than I 
+       already have since it works fine without a debugger attached.
+       If a debugger is present counting the webcams is just skipped.
+       Defaulted to 2 because assumption is 1 webcam + 1 virtual cam
+    */
+    if (IsDebuggerPresent()) return 2;
+
+    int maxTested = 10;
+    int count = 0;
+    for (int i = 0; i < maxTested; i++) {
+        cv::VideoCapture cap(i);
+        if (cap.isOpened()) {
+            count++;
+            cap.release();
+        }
+    }
+    Log(wxString::Format("Detected Webcams: %d", count));
+    return count;
+}
+
+void VideoStream::StartCapture(int deviceIndex) {
+    Log(wxString::Format("Starting capture on device %d", deviceIndex));
+    m_stopCapture = false;
+
+    m_captureThread = std::thread([this, deviceIndex]() {
+        cv::VideoCapture cap(deviceIndex, cv::CAP_ANY);
 
         if (!cap.isOpened()) {
             Log("ERROR: Could not open camera.");
@@ -25,7 +51,7 @@ void VideoStream::StartCapture() {
 
         // Let the camera warmup before trusting any frames
         cv::Mat warmup;
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 10 && !m_stopCapture; i++) {
             cap.read(warmup);
             std::this_thread::sleep_for(std::chrono::milliseconds(30));
         }
@@ -34,7 +60,7 @@ void VideoStream::StartCapture() {
         auto lastFpsTime = std::chrono::steady_clock::now();
         double currentFps = 0.0;
 
-        while (true) {
+        while (!m_stopCapture) {
             cv::Mat tempFrame;
             bool readOk = cap.read(tempFrame);
             if (!readOk || tempFrame.empty()) continue;
@@ -62,13 +88,11 @@ void VideoStream::StartCapture() {
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(30));
-
-            //cv::imshow("OpenCV debug view", m_frame);
-            //cv::waitKey(1);
         }
-    });
 
-    capThread.detach();
+        cap.release();
+        Log(wxString::Format("Capture stopped on device %d", deviceIndex));
+    });
 }
 
 wxImage VideoStream::GetWxImageFromFrame(){
@@ -153,3 +177,20 @@ bool VideoStream::checkShiny() {
     return false;
 }
 
+void VideoStream::StopCapture() {
+    m_stopCapture = true;
+    if (m_captureThread.joinable()) m_captureThread.join();
+}
+
+void VideoStream::SwitchCamera(int deviceIndex) {
+    StopCapture();
+
+    {
+        // Clear the old frame so GetWxImageFromFrame() doesn't briefly hand back
+        // a stale frame from the previous camera while the new one warms up.
+        std::lock_guard<std::mutex> lock(m_frameMutex);
+        m_frame = cv::Mat();
+    }
+
+    StartCapture(deviceIndex);
+}

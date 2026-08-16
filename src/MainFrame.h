@@ -87,6 +87,7 @@ private:
     wxSpinCtrl* m_detectionWCtrl = nullptr;
     wxSpinCtrl* m_detectionHCtrl = nullptr;
 
+    void OnWebcamChanged(wxCommandEvent& evt);
     void OnEncounterUpdate(wxSpinEvent& evt);
     void OnVCToggle(wxCommandEvent& evt);
     void OnVCTypeChange(wxCommandEvent& evt);

@@ -15,6 +15,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxInitAllImageHandlers();
 
     m_videoStream = new VideoStream();
+    int webcamCount = m_videoStream->GetWebcamCount();
     m_videoStream->StartCapture();
 
     //Panels splitting gui into left and right halves
@@ -31,11 +32,14 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxBoxSizer* leftSizer = new wxBoxSizer(wxVERTICAL);
 
     wxArrayString webcams;
-    //TODO: populate webcams with actual user devices
-    webcams.Add("webcam 1");
-    webcams.Add("webcam 2");
+    
+    for (int i = 1; i <= webcamCount; i++){
+        webcams.Add(wxString::Format("Webcam #%d", i));
+    }
+
     wxChoice* webcamChoice = new wxChoice(leftPanel, wxID_ANY, wxDefaultPosition, wxSize(100, 40), webcams);
     webcamChoice->SetSelection(0);
+    webcamChoice->Bind(wxEVT_CHOICE, &MainFrame::OnWebcamChanged, this);
 
     m_videoBitmap = new ScaledBitmap(leftPanel);
     m_videoTimer = new wxTimer();
@@ -242,6 +246,14 @@ void MainFrame::StopMacroThread() {
 //
 // Event handler implementations
 //
+
+void MainFrame::OnWebcamChanged(wxCommandEvent& evt){
+    int deviceIndex = evt.GetSelection();
+    if (deviceIndex == wxNOT_FOUND) return;
+
+    Log(wxString::Format("Switching to webcam #%d", deviceIndex + 1));
+    m_videoStream->SwitchCamera(deviceIndex);
+}
 
 void MainFrame::OnEncounterUpdate(wxSpinEvent& evt){
     int val = evt.GetValue();
