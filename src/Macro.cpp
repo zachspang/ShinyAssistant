@@ -25,7 +25,9 @@ void Macro::RemoveAction(size_t index) {
     if (index < m_actions.size()) m_actions.erase(m_actions.begin() + index);
 }
 
-bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &controller,  VideoStream* videoStream, const std::function<void(int)>& OnEncounterIncrement) {
+bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &controller,  
+    VideoStream* videoStream, const std::function<void(int)>& OnEncounterIncrement,
+    const std::function<void(const wxImage&)>& OnShinyDetected) {
     for (const auto& action : m_actions) {
         if (!keepRunning) {
             controller->Reset();
@@ -55,8 +57,8 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
                 if (elapsed >= action.delayMs) break;
             }
         } else if (action.type == ActionType::CheckForShiny) {
-            //TODO: If shiny send have discord webhook to user with current frame to show shiny
             if (videoStream && videoStream->checkShiny(keepRunning)) {
+                OnShinyDetected(videoStream->GetWxImageFromFrame());
                 controller->Reset();
                 return true;
             }

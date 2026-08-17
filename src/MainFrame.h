@@ -93,6 +93,10 @@ private:
     wxSpinCtrl* m_detectionWCtrl = nullptr;
     wxSpinCtrl* m_detectionHCtrl = nullptr;
 
+    //Entries for discord webhook settings
+    wxTextCtrl* m_webhookUrlCtrl = nullptr;
+    wxTextCtrl* m_webhookUsernameCtrl = nullptr;
+
     void OnWebcamChanged(wxCommandEvent& evt);
     void OnEncounterCtrlUpdate(wxSpinEvent& evt);
     void OnVCToggle(wxCommandEvent& evt);

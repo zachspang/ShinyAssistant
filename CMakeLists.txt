@@ -16,7 +16,13 @@ include(${wxWidgets_USE_FILE})
 
 # --- OpenCV (shared MSYS2 install) ---
 set(OpenCV_DIR "C:/msys64/mingw64/lib/cmake/opencv4")
-find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio highgui video features2d calib3d)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio)
+
+# --- CURL (shared MSYS2 install) ---
+find_package(CURL REQUIRED)
+
+# --- nlohmann JSON (shared MSYS2 install) --
+find_package(nlohmann_json REQUIRED)
 
 # --- ViGEmClient (static) ---
 add_library(ViGEmClient STATIC
@@ -48,6 +54,8 @@ target_link_libraries(ShinyAssistant PRIVATE
     ${wxWidgets_LIBRARIES}
     ${OpenCV_LIBS}
     ViGEmClient
+    CURL::libcurl
+    nlohmann_json::nlohmann_json
     -Wl,--end-group
 )
 

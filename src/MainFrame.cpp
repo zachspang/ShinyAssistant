@@ -4,6 +4,7 @@
 #include "MacroEditorFrame.h"
 #include "VirtualXInput.h"
 #include "Logging.h"
+#include "WebhookNotifier.h"
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 #include <wx/stdpaths.h>
@@ -111,6 +112,23 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_deviceIPConfirm->Bind(wxEVT_BUTTON, &MainFrame::OnIPConfirm, this);
     m_deviceIPConfirm->Enable(false);
 
+    wxStaticBoxSizer* webhookSizer = new wxStaticBoxSizer(wxVERTICAL, rightPanel, "Discord Alert");
+
+    wxBoxSizer* webhookUrlRow = new wxBoxSizer(wxHORIZONTAL);
+    wxStaticText* webhookUrlLabel = new wxStaticText(rightPanel, wxID_ANY, "Webhook URL: ");
+    m_webhookUrlCtrl = new wxTextCtrl(rightPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(200, -1));
+    webhookUrlRow->Add(webhookUrlLabel, wxSizerFlags().CenterVertical());
+    webhookUrlRow->Add(m_webhookUrlCtrl, wxSizerFlags().CenterVertical());
+
+    wxBoxSizer* webhookUserRow = new wxBoxSizer(wxHORIZONTAL);
+    wxStaticText* webhookUserLabel = new wxStaticText(rightPanel, wxID_ANY, "Ping Text: ");
+    m_webhookUsernameCtrl = new wxTextCtrl(rightPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(200, -1));
+    webhookUserRow->Add(webhookUserLabel, wxSizerFlags().CenterVertical());
+    webhookUserRow->Add(m_webhookUsernameCtrl, wxSizerFlags().CenterVertical());
+
+    webhookSizer->Add(webhookUrlRow, wxSizerFlags().Border(wxALL, 5));
+    webhookSizer->Add(webhookUserRow, wxSizerFlags().Border(wxALL, 5));
+
     //Macros are all stored in a single file, loaded once here and shared with the editor
     wxString macroDir = wxStandardPaths::Get().GetUserDataDir();
     wxFileName::Mkdir(macroDir, wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
@@ -179,6 +197,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     rightSizer->Add(vcCheckBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(m_controllerTypeRadioBox, wxSizerFlags().Border(wxALL, 10).Center());
     rightSizer->Add(deviceIPSizer, wxSizerFlags().Border(wxALL, 10).Center());
+    rightSizer->Add(webhookSizer, wxSizerFlags().Border(wxALL, 10).Center());
 
     rightPanel->SetSizer(rightSizer);
     rightSizer->SetSizeHints(rightPanel);
@@ -251,15 +270,23 @@ void MainFrame::StartMacroThread() {
         });
     };
 
+    wxString webhookUrl = m_webhookUrlCtrl->GetValue();
+    wxString pingName = m_webhookUsernameCtrl->GetValue();
+    //Lambda wrapper for discord webhook alert
+    auto OnShinyDetectedWrapper = [webhookUrl, pingName](const wxImage& frame) {
+        // Blocking HTTP call is ok, the macro thread is stopping right after this anyway
+        WebhookNotifier::SendShinyAlert(frame, webhookUrl, pingName);
+    };
+
     //Reset the previous detection frame so the first detection on this run is considered the baseline
     m_videoStream->resetDetectionFrame();
 
     //Macro loop thread, keeps looping macro until m_macroRunning = false
-    m_macroThread = std::thread([this, macroCopy, OnEncounterIncrementWrapper]() mutable {
+    m_macroThread = std::thread([this, macroCopy, OnEncounterIncrementWrapper, OnShinyDetectedWrapper]() mutable {
         Log(wxString::Format("Macro \"%s\" started", macroCopy.GetName()));
 
         while (m_macroRunning) {
-            bool stopMacro = macroCopy.Play(m_macroRunning, m_controller, m_videoStream, OnEncounterIncrementWrapper);
+            bool stopMacro = macroCopy.Play(m_macroRunning, m_controller, m_videoStream, OnEncounterIncrementWrapper, OnShinyDetectedWrapper);
             if (stopMacro) {
                 wxTheApp->CallAfter([this]() {
                     StopMacroThread(); //join from ui thread

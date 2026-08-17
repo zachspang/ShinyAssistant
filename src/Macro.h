@@ -24,7 +24,9 @@ public:
     void RemoveAction(size_t index);
 
     //Returns true of macro should stop looping
-    bool Play(const std::atomic<bool>& keepRunning, VirtualController* &controller, VideoStream* videoStream, const std::function<void(int)>& OnEncounterIncrement);
+    bool Play(const std::atomic<bool>& keepRunning, VirtualController* &controller, 
+        VideoStream* videoStream, const std::function<void(int)>& OnEncounterIncrement,
+        const std::function<void(const wxImage&)>& OnShinyDetected);
 
     //Serialize a block of lines representing just this macro: name, action count, then one line per action.
     wxArrayString SerializeLines() const;

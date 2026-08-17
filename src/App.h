@@ -4,6 +4,6 @@
 class App : public wxApp
 {
 public:
-    bool OnInit();
-
+    bool OnInit() override;
+    int OnExit() override;
 };
