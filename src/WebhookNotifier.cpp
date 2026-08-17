@@ -22,7 +22,7 @@ bool WebhookNotifier::SendShinyAlert(const wxImage& frame, const wxString& webho
     //Format payload content
     wxString content = pingName.IsEmpty()
     ? wxString("Shiny detected!")
-    : wxString::Format("%s Shiny detected!", pingName);
+    : wxString::Format("<@%s> Shiny detected!", pingName);
 
     nlohmann::json payload;
     payload["content"] = content.ToUTF8().data(); 
@@ -53,6 +53,7 @@ bool WebhookNotifier::SendShinyAlert(const wxImage& frame, const wxString& webho
     curl_easy_setopt(curl, CURLOPT_URL, urlUtf8.data());
     curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, "ca-bundle.crt");
 
     CURLcode res = curl_easy_perform(curl);
     bool success = false;

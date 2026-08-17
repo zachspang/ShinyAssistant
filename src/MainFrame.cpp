@@ -121,7 +121,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     webhookUrlRow->Add(m_webhookUrlCtrl, wxSizerFlags().CenterVertical());
 
     wxBoxSizer* webhookUserRow = new wxBoxSizer(wxHORIZONTAL);
-    wxStaticText* webhookUserLabel = new wxStaticText(rightPanel, wxID_ANY, "Ping Text: ");
+    wxStaticText* webhookUserLabel = new wxStaticText(rightPanel, wxID_ANY, "User ID: ");
     m_webhookUsernameCtrl = new wxTextCtrl(rightPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(200, -1));
     webhookUserRow->Add(webhookUserLabel, wxSizerFlags().CenterVertical());
     webhookUserRow->Add(m_webhookUsernameCtrl, wxSizerFlags().CenterVertical());
