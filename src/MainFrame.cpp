@@ -27,14 +27,28 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     //Left Panel Children
     //
     
+    //Anything that calls Log() must call it after this block or there is a risk of crashing/freezing the thread that calls log
     m_logCtrl = new wxTextCtrl(leftPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 150), wxTE_MULTILINE | wxTE_READONLY);
     m_logCtrl->SetMinSize(wxSize(-1, 150));
     //wxLogTextCtrl takes ownership; wxWidgets deletes it at shutdown
     wxLog::SetActiveTarget(new wxLogTextCtrl(m_logCtrl));
 
+    //Settings are loaded so widget construction below can use them as defaults.
+    //This isnt a child of the left panel but it Logs so it has to run after wxLog::SetActiveTarget(new wxLogTextCtrl(m_logCtrl));
+    wxString settingsDir = wxStandardPaths::Get().GetUserDataDir();
+    wxFileName::Mkdir(settingsDir, wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
+    m_settingsFilePath = settingsDir + wxFILE_SEP_PATH + "settings.json";
+    m_settings.LoadFromFile(m_settingsFilePath); //this fails if no settings saved yet which is ok
+    m_encounterValue = m_settings.encounterValue;
+
     m_videoStream = new VideoStream();
     int webcamCount = m_videoStream->GetWebcamCount();
-    m_videoStream->StartCapture();
+
+    //Default the saved webcam index back to 0 if it's out of range for the webcams actually detected
+    if (m_settings.selectedWebcamIndex < 0 || m_settings.selectedWebcamIndex >= webcamCount) {
+        m_settings.selectedWebcamIndex = 0;
+    }
+    m_videoStream->StartCapture(m_settings.selectedWebcamIndex);
 
     wxBoxSizer* leftSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -44,9 +58,9 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
         webcams.Add(wxString::Format("Webcam #%d", i));
     }
 
-    wxChoice* webcamChoice = new wxChoice(leftPanel, wxID_ANY, wxDefaultPosition, wxSize(100, 40), webcams);
-    webcamChoice->SetSelection(0);
-    webcamChoice->Bind(wxEVT_CHOICE, &MainFrame::OnWebcamChanged, this);
+    m_webcamChoice = new wxChoice(leftPanel, wxID_ANY, wxDefaultPosition, wxSize(100, 40), webcams);
+    m_webcamChoice->SetSelection(m_settings.selectedWebcamIndex);
+    m_webcamChoice->Bind(wxEVT_CHOICE, &MainFrame::OnWebcamChanged, this);
 
     m_videoBitmap = new ScaledBitmap(leftPanel);
     m_videoTimer = new wxTimer();
@@ -58,13 +72,13 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     font.SetPixelSize(wxSize(0,40));
     m_encounterCounter->SetFont(font);
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
-    m_encounterCounter->SetLabel("Encounters: 0");
+    m_encounterCounter->SetLabel(wxString::Format("Encounters: %d", m_encounterValue));
 
     m_macroToggleButton = new wxButton(leftPanel, wxID_ANY, "Start Macro");
     m_macroToggleButton->Bind(wxEVT_BUTTON, &MainFrame::OnMacroToggle, this);
 
     leftSizer->AddSpacer(20);
-    leftSizer->Add(webcamChoice, wxSizerFlags().Center().Shaped());
+    leftSizer->Add(m_webcamChoice, wxSizerFlags().Center().Shaped());
     leftSizer->AddSpacer(20);
     leftSizer->Add(m_videoBitmap, wxSizerFlags().Expand().Shaped().Border(wxALL, 10).Center());
     leftSizer->Add(m_encounterCounter, wxSizerFlags().CenterHorizontal().Border(wxLEFT|wxRIGHT, 5));
@@ -85,7 +99,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     wxBoxSizer* encounterCtrlSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* encounterCtrlLabel = new wxStaticText(rightPanel, wxID_ANY, "Set Encounters: ");
-    m_encounterCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "0", wxDefaultPosition, wxSize(100, -1), wxSP_WRAP, 0, 100000, 0);
+    m_encounterCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, wxString::Format("%d", m_encounterValue), wxDefaultPosition, wxSize(100, -1), wxSP_WRAP, 0, 100000, m_encounterValue);
     encounterCtrlSizer->Add(encounterCtrlLabel, wxSizerFlags().CenterVertical());
     encounterCtrlSizer->Add(m_encounterCtrl, wxSizerFlags().CenterVertical());
     m_encounterCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnEncounterCtrlUpdate, this);
@@ -116,13 +130,15 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     wxBoxSizer* webhookUrlRow = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* webhookUrlLabel = new wxStaticText(rightPanel, wxID_ANY, "Webhook URL: ");
-    m_webhookUrlCtrl = new wxTextCtrl(rightPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(200, -1));
+    m_webhookUrlCtrl = new wxTextCtrl(rightPanel, wxID_ANY, m_settings.webhookUrl, wxDefaultPosition, wxSize(200, -1));
+    m_webhookUrlCtrl->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { SaveSettings(); });
     webhookUrlRow->Add(webhookUrlLabel, wxSizerFlags().CenterVertical());
     webhookUrlRow->Add(m_webhookUrlCtrl, wxSizerFlags().CenterVertical());
 
     wxBoxSizer* webhookUserRow = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* webhookUserLabel = new wxStaticText(rightPanel, wxID_ANY, "User ID: ");
-    m_webhookUsernameCtrl = new wxTextCtrl(rightPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(200, -1));
+    m_webhookUsernameCtrl = new wxTextCtrl(rightPanel, wxID_ANY, m_settings.pingName, wxDefaultPosition, wxSize(200, -1));
+    m_webhookUsernameCtrl->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { SaveSettings(); });
     webhookUserRow->Add(webhookUserLabel, wxSizerFlags().CenterVertical());
     webhookUserRow->Add(m_webhookUsernameCtrl, wxSizerFlags().CenterVertical());
 
@@ -160,12 +176,18 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     RefreshMacroChoice();
 
+    //Restore the previously selected macro if it's still a valid index
+    if (m_settings.selectedMacroIndex >= 0 && m_settings.selectedMacroIndex < (int)m_macroLibrary.GetMacros().size()) {
+        m_macroChoice->SetSelection(m_settings.selectedMacroIndex);
+        UpdateSelectedMacroPointer();
+    }
+
     wxBoxSizer* detectionXYSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* detectionXLabel = new wxStaticText(rightPanel, wxID_ANY, "X: ");
-    m_detectionXCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "78", wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, 78);
+    m_detectionXCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, wxString::Format("%d", m_settings.detectionX), wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, m_settings.detectionX);
     m_detectionXCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionRectChanged, this);
     wxStaticText* detectionYLabel = new wxStaticText(rightPanel, wxID_ANY, "Y: ");
-    m_detectionYCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "365", wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, 365);
+    m_detectionYCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, wxString::Format("%d", m_settings.detectionY), wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, m_settings.detectionY);
     m_detectionYCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionRectChanged, this);
     detectionXYSizer->Add(detectionXLabel, wxSizerFlags().CenterVertical());
     detectionXYSizer->Add(m_detectionXCtrl, wxSizerFlags().CenterVertical().Border(wxRIGHT, 10));
@@ -174,10 +196,10 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     wxBoxSizer* detectionWHSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* detectionWLabel = new wxStaticText(rightPanel, wxID_ANY, "W: ");
-    m_detectionWCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "293", wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, 293);
+    m_detectionWCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, wxString::Format("%d", m_settings.detectionW), wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, m_settings.detectionW);
     m_detectionWCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionRectChanged, this);
     wxStaticText* detectionHLabel = new wxStaticText(rightPanel, wxID_ANY, "H: ");
-    m_detectionHCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, "51", wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, 51);
+    m_detectionHCtrl = new wxSpinCtrl(rightPanel, wxID_ANY, wxString::Format("%d", m_settings.detectionH), wxDefaultPosition, wxSize(80, -1), wxSP_WRAP, 0, 4000, m_settings.detectionH);
     m_detectionHCtrl->Bind(wxEVT_SPINCTRL, &MainFrame::OnDetectionRectChanged, this);
     detectionWHSizer->Add(detectionWLabel, wxSizerFlags().CenterVertical());
     detectionWHSizer->Add(m_detectionWCtrl, wxSizerFlags().CenterVertical().Border(wxRIGHT, 10));
@@ -187,6 +209,13 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxStaticBoxSizer* detectionBoundsSizer = new wxStaticBoxSizer(wxVERTICAL, rightPanel, "Detection Bounds");
     detectionBoundsSizer->Add(detectionXYSizer, wxSizerFlags().Border(wxALL, 5).Center());
     detectionBoundsSizer->Add(detectionWHSizer, wxSizerFlags().Border(wxALL, 5).Center());
+
+    //Push the loaded/default detection bounds into VideoStream, since the spin controls above only update
+    //VideoStream when the user actually changes them via OnDetectionRectChanged
+    m_videoStream->m_rectX = m_settings.detectionX;
+    m_videoStream->m_rectY = m_settings.detectionY;
+    m_videoStream->m_rectW = m_settings.detectionW;
+    m_videoStream->m_rectH = m_settings.detectionH;
 
     rightSizer->AddSpacer(20);
     rightSizer->Add(encounterCtrlSizer, wxSizerFlags().Border(wxALL, 10).Center());
@@ -241,6 +270,19 @@ void MainFrame::RefreshMacroChoice() {
     }
 
     UpdateSelectedMacroPointer();
+}
+
+void MainFrame::SaveSettings() {
+    m_settings.encounterValue = m_encounterValue;
+    m_settings.detectionX = m_detectionXCtrl->GetValue();
+    m_settings.detectionY = m_detectionYCtrl->GetValue();
+    m_settings.detectionW = m_detectionWCtrl->GetValue();
+    m_settings.detectionH = m_detectionHCtrl->GetValue();
+    m_settings.webhookUrl = m_webhookUrlCtrl->GetValue();
+    m_settings.pingName = m_webhookUsernameCtrl->GetValue();
+    m_settings.selectedMacroIndex = m_macroChoice->GetSelection();
+    m_settings.selectedWebcamIndex = m_webcamChoice->GetSelection();
+    m_settings.SaveToFile(m_settingsFilePath);
 }
 
 void MainFrame::StartMacroThread() {
@@ -314,12 +356,15 @@ void MainFrame::OnWebcamChanged(wxCommandEvent& evt){
 
     Log(wxString::Format("Switching to webcam #%d", deviceIndex + 1));
     m_videoStream->SwitchCamera(deviceIndex);
+    SaveSettings();
 }
 
 void MainFrame::OnEncounterCtrlUpdate(wxSpinEvent& evt){
     int val = evt.GetValue();
+    m_encounterValue = val;
     m_encounterCounter->SetLabel(wxString::Format("Encounters: %d", val));
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
+    SaveSettings();
 };
 
 void MainFrame::OnEncounterIncrement(int amount) {
@@ -327,6 +372,7 @@ void MainFrame::OnEncounterIncrement(int amount) {
     m_encounterCounter->SetLabel(wxString::Format("Encounters: %d", m_encounterValue));
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
     m_encounterCtrl->SetValue(m_encounterValue);
+    SaveSettings();
 }
 
 void MainFrame::OnVCToggle(wxCommandEvent& evt){
@@ -368,11 +414,13 @@ void MainFrame::OnDetectionRectChanged(wxSpinEvent&) {
     m_videoStream->m_rectY = m_detectionYCtrl->GetValue();
     m_videoStream->m_rectW = m_detectionWCtrl->GetValue();
     m_videoStream->m_rectH = m_detectionHCtrl->GetValue();
+    SaveSettings();
 };
 
 void MainFrame::OnMacroChange(wxCommandEvent& evt){
     StopMacroThread();
     UpdateSelectedMacroPointer();
+    SaveSettings();
 }
 
 void MainFrame::OnEditMacro(wxCommandEvent& evt){
@@ -412,6 +460,7 @@ void MainFrame::OnDeleteMacro(wxCommandEvent& evt){
     m_macroLibrary.RemoveMacro((size_t)index);
     m_macroLibrary.SaveToFile(m_macroFilePath);
     RefreshMacroChoice();
+    SaveSettings();
 }
 
 void MainFrame::OnMacroEditorClosed(wxShowEvent& evt) {
@@ -421,6 +470,7 @@ void MainFrame::OnMacroEditorClosed(wxShowEvent& evt) {
 
     if (evt.IsShown()) return; //only refresh once the editor is dismissed, not when it opens
     RefreshMacroChoice();
+    SaveSettings();
 }
 
 void MainFrame::OnMacroToggle(wxCommandEvent& evt) {

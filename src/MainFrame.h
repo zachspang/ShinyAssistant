@@ -5,6 +5,7 @@
 #include "VideoStream.h"
 #include "MacroEditorFrame.h"
 #include "MacroLibrary.h"
+#include "Settings.h"
 #include <thread>
 #include <atomic>
 
@@ -96,6 +97,18 @@ private:
     //Entries for discord webhook settings
     wxTextCtrl* m_webhookUrlCtrl = nullptr;
     wxTextCtrl* m_webhookUsernameCtrl = nullptr;
+
+    //Choice widget used to select webcam, kept as a member so its selection can be read/set for settings persistence
+    wxChoice* m_webcamChoice = nullptr;
+
+    //Holds user settings loaded from / saved to m_settingsFilePath, used as defaults on startup
+    Settings m_settings;
+
+    //Path to the settings file
+    wxString m_settingsFilePath;
+
+    //Writes current widget values into m_settings and saves to disk. Call after any setting-relevant change.
+    void SaveSettings();
 
     void OnWebcamChanged(wxCommandEvent& evt);
     void OnEncounterCtrlUpdate(wxSpinEvent& evt);
