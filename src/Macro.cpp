@@ -6,6 +6,7 @@
 #include <wx/filefn.h>
 #include <wx/utils.h>
 #include <chrono>
+#include <nlohmann/json.hpp>
 
 Macro::Macro(const wxString& name) {
     m_name = name;
@@ -72,25 +73,22 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
     return false;
 }
 
-wxArrayString Macro::SerializeLines() const {
-    wxArrayString lines;
-    lines.Add(m_name);
-    lines.Add(wxString::Format("%zu", m_actions.size()));
-    for (const auto& action : m_actions) lines.Add(action.Serialize());
-    return lines;
+nlohmann::json Macro::ToJson() const {
+    nlohmann::json j;
+    j["name"] = m_name.ToStdString();
+    nlohmann::json actionsJson = nlohmann::json::array();
+    for (const auto& action : m_actions) actionsJson.push_back(action.ToJson());
+    j["actions"] = actionsJson;
+    return j;
 }
 
-Macro Macro::DeserializeLines(const wxArrayString& lines) {
+Macro Macro::FromJson(const nlohmann::json& j) {
     Macro macro;
-    size_t i = 0;
-    if (i >= lines.GetCount()) return macro;
-    macro.m_name = lines[i++];
-
-    long actionCount = 0;
-    if (i < lines.GetCount()) lines[i++].ToLong(&actionCount);
-
-    for (long n = 0; n < actionCount && i < lines.GetCount(); ++n, ++i) {
-        macro.m_actions.push_back(MacroAction::Deserialize(lines[i]));
+    macro.m_name = wxString::FromUTF8(j.value("name", ""));
+    if (j.contains("actions") && j["actions"].is_array()) {
+        for (const auto& actionJson : j["actions"]) {
+            macro.m_actions.push_back(MacroAction::FromJson(actionJson));
+        }
     }
     return macro;
 }

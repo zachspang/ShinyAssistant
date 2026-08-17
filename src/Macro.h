@@ -6,6 +6,7 @@
 #include "MacroAction.h"
 #include "VirtualController.h"
 #include <atomic>
+#include <nlohmann/json.hpp>
 
 //Owns a vector of actions and a pointer to a VirtualController to playback the actions
 class Macro {
@@ -28,10 +29,9 @@ public:
         VideoStream* videoStream, const std::function<void(int)>& OnEncounterIncrement,
         const std::function<void(const wxImage&)>& OnShinyDetected);
 
-    //Serialize a block of lines representing just this macro: name, action count, then one line per action.
-    wxArrayString SerializeLines() const;
-    //Deserialize a block of lines representing just this macro: name, action count, then one line per action.
-    static Macro DeserializeLines(const wxArrayString& lines);
+
+    nlohmann::json ToJson() const;
+    static Macro FromJson(const nlohmann::json& j);
 
 private:
     wxString m_name;

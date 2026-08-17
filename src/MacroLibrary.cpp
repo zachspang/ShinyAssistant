@@ -1,63 +1,39 @@
 #include "MacroLibrary.h"
-#include <wx/textfile.h>
-#include <wx/filefn.h>
+#include "Logging.h"
+#include <nlohmann/json.hpp>
+#include <fstream>
 
 bool MacroLibrary::LoadFromFile(const wxString& path) {
     m_macros.clear();
-    if (!wxFileExists(path)) return false;
 
-    wxTextFile file;
-    if (!file.Open(path)) return false;
+    std::ifstream file(path.ToStdString());
+    if (!file.is_open()) return false; //empty file, valid just no macros created
 
-    wxArrayString allLines;
-    for (size_t i = 0; i < file.GetLineCount(); ++i) allLines.Add(file.GetLine(i));
-    file.Close();
+    nlohmann::json j;
+    try {
+        file >> j;
+    } catch (const std::exception& e) {
+        Log(wxString::Format("Failed to parse macros.json: %s", e.what()));
+        return false;
+    }
 
-    if (allLines.IsEmpty()) return true; //empty file, valid just no macros created
-
-    size_t pos = 0;
-    long macroCount = 0;
-    allLines[pos++].ToLong(&macroCount);
-
-    for (long m = 0; m < macroCount && pos < allLines.GetCount(); ++m) {
-        wxArrayString macroLines;
-
-        macroLines.Add(allLines[pos++]); //name
-        long actionCount = 0;
-        if (pos < allLines.GetCount()) {
-            actionCount = 0;
-            allLines[pos].ToLong(&actionCount);
-            macroLines.Add(allLines[pos++]); //action count
-        }
-        for (long a = 0; a < actionCount && pos < allLines.GetCount(); ++a) {
-            macroLines.Add(allLines[pos++]);
-        }
-
-        m_macros.push_back(Macro::DeserializeLines(macroLines));
+    if (!j.is_array()) return false;
+    for (const auto& macroJson : j) {
+        m_macros.push_back(Macro::FromJson(macroJson));
     }
 
     return true;
 }
 
 bool MacroLibrary::SaveToFile(const wxString& path) const {
-    wxTextFile file;
-    if (wxFileExists(path)) {
-        if (!file.Open(path)) return false;
-        file.Clear();
-    } else {
-        if (!file.Create(path)) return false;
-    }
+    nlohmann::json j = nlohmann::json::array();
+    for (const auto& macro : m_macros) j.push_back(macro.ToJson());
 
-    file.AddLine(wxString::Format("%zu", m_macros.size()));
-    for (const auto& macro : m_macros) {
-        for (const auto& line : macro.SerializeLines()) {
-            file.AddLine(line);
-        }
-    }
+    std::ofstream file(path.ToStdString());
+    if (!file.is_open()) return false;
 
-    bool ok = file.Write();
-    file.Close();
-    return ok;
+    file << j.dump(2);
+    return true;
 }
 
 wxArrayString MacroLibrary::GetMacroNames() const {

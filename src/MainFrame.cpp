@@ -132,8 +132,8 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     //Macros are all stored in a single file, loaded once here and shared with the editor
     wxString macroDir = wxStandardPaths::Get().GetUserDataDir();
     wxFileName::Mkdir(macroDir, wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
-    m_macroFilePath = macroDir + wxFILE_SEP_PATH + "macros.txt";
-    m_macroLibrary.LoadFromFile(m_macroFilePath); //this fails if no macros are made which ok
+    m_macroFilePath = macroDir + wxFILE_SEP_PATH + "macros.json";
+    m_macroLibrary.LoadFromFile(m_macroFilePath); //this fails if no macros are made which is ok
 
     wxBoxSizer* macroChoiceSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* macroChoiceLabel = new wxStaticText(rightPanel, wxID_ANY, "Selected Macro: ");

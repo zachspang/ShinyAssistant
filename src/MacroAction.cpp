@@ -95,21 +95,28 @@ wxString MacroAction::ToDisplayString() const {
     }
 }
 
-wxString MacroAction::Serialize() const {
-    return wxString::Format("%s|%d|%d|%d|%d|%d|%d|%d",
-        ActionTypeToString(type), (int)button, leftJoystickX, leftJoystickY, rightJoystickX, rightJoystickY, delayMs, encounterIncrement);
+nlohmann::json MacroAction::ToJson() const {
+    nlohmann::json j;
+    j["type"] = ActionTypeToString(type).ToStdString();
+    j["button"] = (int)button;
+    j["leftJoystickX"] = leftJoystickX;
+    j["leftJoystickY"] = leftJoystickY;
+    j["rightJoystickX"] = rightJoystickX;
+    j["rightJoystickY"] = rightJoystickY;
+    j["delayMs"] = delayMs;
+    j["encounterIncrement"] = encounterIncrement;
+    return j;
 }
 
-MacroAction MacroAction::Deserialize(const wxString& line) {
-    wxStringTokenizer tok(line, "|");
+MacroAction MacroAction::FromJson(const nlohmann::json& j) {
     MacroAction a;
-    if (tok.HasMoreTokens()) a.type = StringToActionType(tok.GetNextToken());
-    if (tok.HasMoreTokens()) a.button = (ControllerButton)wxAtoi(tok.GetNextToken());
-    if (tok.HasMoreTokens()) a.leftJoystickX = wxAtoi(tok.GetNextToken());
-    if (tok.HasMoreTokens()) a.leftJoystickY = wxAtoi(tok.GetNextToken());
-    if (tok.HasMoreTokens()) a.rightJoystickX = wxAtoi(tok.GetNextToken());
-    if (tok.HasMoreTokens()) a.rightJoystickY = wxAtoi(tok.GetNextToken());
-    if (tok.HasMoreTokens()) a.delayMs = wxAtoi(tok.GetNextToken());
-    if (tok.HasMoreTokens()) a.encounterIncrement = wxAtoi(tok.GetNextToken());
+    a.type = StringToActionType(wxString::FromUTF8(j.value("type", "Invalid")));
+    a.button = (ControllerButton)j.value("button", 0);
+    a.leftJoystickX = j.value("leftJoystickX", 0);
+    a.leftJoystickY = j.value("leftJoystickY", 0);
+    a.rightJoystickX = j.value("rightJoystickX", 0);
+    a.rightJoystickY = j.value("rightJoystickY", 0);
+    a.delayMs = j.value("delayMs", 0);
+    a.encounterIncrement = j.value("encounterIncrement", 0);
     return a;
 }

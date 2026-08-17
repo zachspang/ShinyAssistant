@@ -1,6 +1,8 @@
 #pragma once
 #include <wx/string.h>
 #include <wx/arrstr.h>
+#include <nlohmann/json.hpp>
+
 enum class ActionType {
     PressButton,
     ReleaseButton,
@@ -22,6 +24,8 @@ enum class ControllerButton {
 wxString ButtonToString(ControllerButton button);
 wxString ActionTypeToChoiceLabel(ActionType type);
 ActionType ChoiceLabelToActionType(const wxString& label);
+wxString ActionTypeToString(ActionType t);       // already exists in .cpp, just needs declaring here
+ActionType StringToActionType(const wxString& s); // already exists in .cpp, just needs declaring here
 
 //A single macro action (ex. Pressing A, moving joystick or a delay)
 struct MacroAction {
@@ -44,7 +48,8 @@ struct MacroAction {
     //Number to increment encounter counter by
     int encounterIncrement = 0; // 0..1000
 
+
     wxString ToDisplayString() const;
-    wxString Serialize() const;
-    static MacroAction Deserialize(const wxString& line);
+    nlohmann::json ToJson() const;
+    static MacroAction FromJson(const nlohmann::json& j);
 };
