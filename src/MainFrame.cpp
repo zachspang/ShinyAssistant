@@ -15,10 +15,6 @@
 MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxInitAllImageHandlers();
 
-    m_videoStream = new VideoStream();
-    int webcamCount = m_videoStream->GetWebcamCount();
-    m_videoStream->StartCapture();
-
     //Panels splitting gui into left and right halves
 
     wxPanel* leftPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(200,300));
@@ -29,6 +25,15 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     //
     //Left Panel Children
     //
+    
+    m_logCtrl = new wxTextCtrl(leftPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 150), wxTE_MULTILINE | wxTE_READONLY);
+    m_logCtrl->SetMinSize(wxSize(-1, 150));
+    //wxLogTextCtrl takes ownership; wxWidgets deletes it at shutdown
+    wxLog::SetActiveTarget(new wxLogTextCtrl(m_logCtrl));
+
+    m_videoStream = new VideoStream();
+    int webcamCount = m_videoStream->GetWebcamCount();
+    m_videoStream->StartCapture();
 
     wxBoxSizer* leftSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -53,11 +58,6 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     m_encounterCounter->SetFont(font);
     m_encounterCounter->SetMinSize(m_encounterCounter->GetBestSize());
     m_encounterCounter->SetLabel("Encounters: 0");
-
-    m_logCtrl = new wxTextCtrl(leftPanel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 150), wxTE_MULTILINE | wxTE_READONLY);
-    m_logCtrl->SetMinSize(wxSize(-1, 150));
-    //wxLogTextCtrl takes ownership; wxWidgets deletes it at shutdown
-    wxLog::SetActiveTarget(new wxLogTextCtrl(m_logCtrl));
 
     m_macroToggleButton = new wxButton(leftPanel, wxID_ANY, "Start Macro");
     m_macroToggleButton->Bind(wxEVT_BUTTON, &MainFrame::OnMacroToggle, this);
