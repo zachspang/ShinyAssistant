@@ -98,13 +98,31 @@ wxString MacroAction::ToDisplayString() const {
 nlohmann::json MacroAction::ToJson() const {
     nlohmann::json j;
     j["type"] = ActionTypeToString(type).ToStdString();
-    j["button"] = (int)button;
-    j["leftJoystickX"] = leftJoystickX;
-    j["leftJoystickY"] = leftJoystickY;
-    j["rightJoystickX"] = rightJoystickX;
-    j["rightJoystickY"] = rightJoystickY;
-    j["delayMs"] = delayMs;
-    j["encounterIncrement"] = encounterIncrement;
+
+    switch (type) {
+        case ActionType::PressButton:
+        case ActionType::ReleaseButton:
+            j["button"] = (int)button;
+            break;
+        case ActionType::MoveLeftJoystick:
+            j["leftJoystickX"] = leftJoystickX;
+            j["leftJoystickY"] = leftJoystickY;
+            break;
+        case ActionType::MoveRightJoystick:
+            j["rightJoystickX"] = rightJoystickX;
+            j["rightJoystickY"] = rightJoystickY;
+            break;
+        case ActionType::Delay:
+            j["delayMs"] = delayMs;
+            break;
+        case ActionType::AddToEncounterNumber:
+            j["encounterIncrement"] = encounterIncrement;
+            break;
+        case ActionType::CheckForShiny:
+        default:
+            break; //no extra fields needed
+    }
+
     return j;
 }
 
