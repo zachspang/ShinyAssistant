@@ -3,6 +3,7 @@
 #include "VideoStream.h"
 #include "MacroEditorFrame.h"
 #include "VirtualXInput.h"
+#include "VirtualRosalina.h"
 #include "Logging.h"
 #include "WebhookNotifier.h"
 #include <wx/wx.h>
@@ -347,7 +348,11 @@ void MainFrame::SyncControllerState() {
                     m_controller = new VirtualXInput();
                 }
                 break;
-
+            case ControllerType::rosalinaIR:
+                if (m_controller == nullptr) {
+                    m_controller = new VirtualRosalina();
+                }
+                break;
             default:
                 delete m_controller;
                 m_controller = nullptr;
@@ -411,15 +416,37 @@ void MainFrame::OnVCTypeChange(wxCommandEvent& evt){
     if (m_macroRunning) {
         StopMacroThread();
     }
+    
+    delete m_controller;
+    m_controller = nullptr;
 
     SyncControllerState();
 }
 
 void MainFrame::OnIPConfirm(wxCommandEvent& evt){
     m_deviceIP = m_deviceIPCtrl->GetValue();
-    //TODO: attempt to connect based on output mode
-    wxString port = ":1234";
-    wxMessageBox(wxString::Format("Attempting to connect to %s%s", m_deviceIP, port));
+    
+    wxString port;
+
+    if (m_controllerType == ControllerType::rosalinaIR) {
+        port = "4950";
+    } else {
+        //TODO: change to sysbotbase port
+        port = "1234";
+    }
+
+    Log(wxString::Format("Attempting to connect to %s:%s", m_deviceIP, port));
+
+    if (m_controllerType == ControllerType::rosalinaIR) {
+        VirtualRosalina* rosalinaPtr = dynamic_cast<VirtualRosalina*>(m_controller);
+
+        if (rosalinaPtr != nullptr) {
+            rosalinaPtr->Connect(m_deviceIP);
+        }
+    } else if (m_controllerType == ControllerType::sysbotbase){
+        //TODO: connect to sysbotbase
+    }
+
 }
 
 void MainFrame::UpdateVideo(wxTimerEvent& evt){
