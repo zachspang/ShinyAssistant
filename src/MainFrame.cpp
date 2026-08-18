@@ -287,17 +287,10 @@ void MainFrame::SaveSettings() {
 
 void MainFrame::StartMacroThread() {
     if (!m_selectedMacro || m_macroRunning) return;
-    //TODO: assign to other controller types
-    switch(m_controllerType) {
-        case ControllerType::xinput:
-            if (m_controller == nullptr) {
-                m_controller = new VirtualXInput();
-            }
-            break;
 
-        default:
-            Log("Error: Attempted to start macro with unimplemented controller");
-            return;
+    if (m_controller == nullptr) {
+        Log("Error: Attempted to start macro with no controller pointer");
+        return;
     }
 
     m_macroToggleButton->SetLabel("Stop Macro");
@@ -346,6 +339,27 @@ void MainFrame::StopMacroThread() {
     if (m_macroThread.joinable()) m_macroThread.join(); //wait for it to actually stop
 }
 
+void MainFrame::SyncControllerState() {
+    if (m_vcEnabled) {
+        switch(m_controllerType) {
+            case ControllerType::xinput:
+                if (m_controller == nullptr) {
+                    m_controller = new VirtualXInput();
+                }
+                break;
+
+            default:
+                delete m_controller;
+                m_controller = nullptr;
+                Log("Error: Attempted to create unimplemented controller");
+                break;
+        }
+    } else {
+        delete m_controller;
+        m_controller = nullptr;
+    }
+}
+
 //
 // Event handler implementations
 //
@@ -385,17 +399,20 @@ void MainFrame::OnVCToggle(wxCommandEvent& evt){
     if (!m_vcEnabled && m_macroRunning) {
         StopMacroThread();
     }
+
+    SyncControllerState();
 }
 
 void MainFrame::OnVCTypeChange(wxCommandEvent& evt){
     m_controllerType = static_cast<ControllerType>(evt.GetSelection());
     m_deviceIPCtrl->Enable(m_vcEnabled && m_controllerType != xinput);
     m_deviceIPConfirm->Enable(m_vcEnabled && m_controllerType != xinput);
-    //TODO: disconnect if currently connected
-
+    
     if (m_macroRunning) {
         StopMacroThread();
     }
+
+    SyncControllerState();
 }
 
 void MainFrame::OnIPConfirm(wxCommandEvent& evt){

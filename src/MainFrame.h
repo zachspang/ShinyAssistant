@@ -110,6 +110,9 @@ private:
     //Writes current widget values into m_settings and saves to disk. Call after any setting-relevant change.
     void SaveSettings();
 
+    //Update m_controller to point to the correct type of controller, or delete the object it points to if !vcEnabled 
+    void SyncControllerState();
+
     void OnWebcamChanged(wxCommandEvent& evt);
     void OnEncounterCtrlUpdate(wxSpinEvent& evt);
     void OnVCToggle(wxCommandEvent& evt);
