@@ -1,5 +1,6 @@
 #include "Macro.h"
-#include "VirtualXInput.h"
+#include "VirtualController.h"
+#include "VirtualRosalina.h"
 #include "Logging.h"
 #include <thread>
 #include <wx/textfile.h>
@@ -29,11 +30,23 @@ void Macro::RemoveAction(size_t index) {
 bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &controller,  
     VideoStream* videoStream, const std::function<void(int)>& OnEncounterIncrement,
     const std::function<void(const wxImage&)>& OnShinyDetected) {
+
+    // True if during the delay packets need to be send out. Used to keep controler state up to date if a packet drops
+    bool shouldSendDuringDelay = false;
+    VirtualRosalina* rosalinaPtr = dynamic_cast<VirtualRosalina*>(controller);
+
+    if (rosalinaPtr != nullptr) {
+        shouldSendDuringDelay = true;
+    }
+
     for (const auto& action : m_actions) {
         if (!keepRunning) {
             controller->Reset();
             return true;
         }
+
+        int64_t timeBetweenSends = 40;
+        int64_t nextSendTime = timeBetweenSends;
 
         if (action.type == ActionType::Delay) {
             auto start = std::chrono::steady_clock::now();
@@ -43,12 +56,24 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
             while (keepRunning) {
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::steady_clock::now() - start).count();
+
+                
+                if (shouldSendDuringDelay && elapsed >= nextSendTime) {
+                    rosalinaPtr->SendInputPacket();
+                    nextSendTime += timeBetweenSends;
+                }
+
                 long remaining = action.delayMs - elapsed;
 
                 if (remaining <= spinThresholdMs) break;
 
                 long sleepChunkMs = std::min<long>(remaining - spinThresholdMs, 5);
                 std::this_thread::sleep_for(std::chrono::milliseconds(sleepChunkMs));
+            }
+
+            // Send extra packet before precision loop
+            if (shouldSendDuringDelay) {
+                rosalinaPtr->SendInputPacket();
             }
 
             // Final precision spin for the last few ms

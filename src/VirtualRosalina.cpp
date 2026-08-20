@@ -118,7 +118,7 @@ bool VirtualRosalina::Connect(wxString deviceIP) {
     wxIPV4address localAddr;
     localAddr.AnyAddress();
 
-    socket = new wxDatagramSocket(localAddr, wxSOCKET_NONE);
+    socket = new wxDatagramSocket(localAddr, wxSOCKET_NOWAIT);
 
     if (!socket->IsOk()) {
         Log(wxString::Format("Failed to open UDP socket for %s:%d", deviceIP, ROSALINA_INPUT_PORT));

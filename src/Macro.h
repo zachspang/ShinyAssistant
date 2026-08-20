@@ -29,7 +29,6 @@ public:
         VideoStream* videoStream, const std::function<void(int)>& OnEncounterIncrement,
         const std::function<void(const wxImage&)>& OnShinyDetected);
 
-
     nlohmann::json ToJson() const;
     static Macro FromJson(const nlohmann::json& j);
 
