@@ -158,20 +158,26 @@ void VirtualXInput::ReleaseButton(ControllerButton button) {
 }
 
 void VirtualXInput::MoveLeftJoystick(int x, int y) {
-    int convertedX = JOYSTICK_MAX * (x / 100.0);
-    int convertedY = JOYSTICK_MAX * (y / 100.0);
+    x = std::clamp(x, -100, 100);
+    y = std::clamp(y, -100, 100);
+    
+    int scaledX = JOYSTICK_MAX * (x / 100.0);
+    int scaledY = JOYSTICK_MAX * (y / 100.0);
 
-    report.sThumbLX = convertedX;
-    report.sThumbLY = convertedY;
+    report.sThumbLX = scaledX;
+    report.sThumbLY = scaledY;
     vigem_target_x360_update(client, pad, report);
 }
 
 void VirtualXInput::MoveRightJoystick(int x, int y) {
-    int convertedX = JOYSTICK_MAX * (x / 100.0);
-    int convertedY = JOYSTICK_MAX * (y / 100.0);
+    x = std::clamp(x, -100, 100);
+    y = std::clamp(y, -100, 100);
 
-    report.sThumbRX = convertedX;
-    report.sThumbRY = convertedY;
+    int scaledX = JOYSTICK_MAX * (x / 100.0);
+    int scaledY = JOYSTICK_MAX * (y / 100.0);
+
+    report.sThumbRX = scaledX;
+    report.sThumbRY = scaledY;
     vigem_target_x360_update(client, pad, report);
 }
 

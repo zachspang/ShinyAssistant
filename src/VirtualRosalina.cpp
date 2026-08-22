@@ -75,19 +75,20 @@ void VirtualRosalina::MoveLeftJoystick(int x, int y) {
     x = std::clamp(x, -100, 100);
     y = std::clamp(y, -100, 100);
 
-    double lx = x / 100.0;
-    double ly = y / 100.0;
+    double scaleAmountX = x / 100.0;
+    double scaleAmountY = y / 100.0;
 
-    uint32_t xRaw = static_cast<uint32_t>(lx * CPAD_BOUND + 0x800);
-    uint32_t yRaw = static_cast<uint32_t>(ly * CPAD_BOUND + 0x800);
+    uint32_t scaledX = static_cast<uint32_t>(scaleAmountX * CPAD_BOUND + 0x800);
+    uint32_t scaledY = static_cast<uint32_t>(scaleAmountY * CPAD_BOUND + 0x800);
 
-    xRaw = xRaw >= 0xfff ? (lx < 0.0 ? 0x000 : 0xfff) : xRaw;
-    yRaw = yRaw >= 0xfff ? (ly < 0.0 ? 0x000 : 0xfff) : yRaw;
+    scaledX = scaledX >= 0xfff ? (scaleAmountX < 0.0 ? 0x000 : 0xfff) : scaledX;
+    scaledY = scaledY >= 0xfff ? (scaleAmountY < 0.0 ? 0x000 : 0xfff) : scaledY;
 
-    circlePad = (yRaw << 12) | xRaw;
+    circlePad = (scaledY << 12) | scaledX;
 
     SendInputPacket();
 }
+
 void VirtualRosalina::MoveRightJoystick(int x, int y) {
     //no right stick, does nothing
     return;
