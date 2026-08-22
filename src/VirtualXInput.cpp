@@ -43,7 +43,7 @@ void VirtualXInput::PressButton(ControllerButton button) {
             report.wButtons |= XUSB_GAMEPAD_B;
             break;
         case ControllerButton::B:
-            report.wButtons |= XUSB_GAMEPAD_X;
+            report.wButtons |= XUSB_GAMEPAD_A;
             break;
         case ControllerButton::X:
             report.wButtons |= XUSB_GAMEPAD_Y;
@@ -103,7 +103,7 @@ void VirtualXInput::ReleaseButton(ControllerButton button) {
             report.wButtons &= ~XUSB_GAMEPAD_B;
             break;
         case ControllerButton::B:
-            report.wButtons &= ~XUSB_GAMEPAD_X;
+            report.wButtons &= ~XUSB_GAMEPAD_A;
             break;
         case ControllerButton::X:
             report.wButtons &= ~XUSB_GAMEPAD_Y;
