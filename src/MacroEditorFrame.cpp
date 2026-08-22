@@ -20,6 +20,7 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent, MacroLibrary* library, cons
     nameSizer->Add(nameLabel, wxSizerFlags().Center());
     nameSizer->Add(m_nameCtrl, wxSizerFlags().Center());
 
+    actionList.Add("Click Button");
     actionList.Add("Press Button");
     actionList.Add("Release Button");
     actionList.Add("Move Left Joystick");
@@ -124,9 +125,19 @@ void MacroEditorFrame::PopulateActionSettings(wxWindow* settingsParent, const wx
     m_currentAction.type = type;
 
     switch (type) {
+        case ActionType::ClickButton:
         case ActionType::PressButton:
         case ActionType::ReleaseButton: {
-            wxString label = (type == ActionType::PressButton) ? "Button to press: " : "Button to release: ";
+            wxString label;
+
+            if (type == ActionType::ClickButton) {
+                label = "Button to click: ";
+            } else if (type == ActionType::PressButton) {
+                label = "Button to press: ";
+            } else if (type == ActionType::ReleaseButton) {
+                label = "Button to release: ";
+            }
+            
             wxStaticText* actionSettingLabel = new wxStaticText(settingsParent, wxID_ANY, label);
 
             wxArrayString buttonChoices;

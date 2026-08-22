@@ -45,10 +45,18 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
             return true;
         }
 
+        //Send press part of click
+        if (action.type == ActionType::ClickButton) {
+            MacroAction tempAction = MacroAction();
+            tempAction.type = ActionType::PressButton;
+            tempAction.button = action.button;
+            controller->SendAction(tempAction);
+        }
+
         int64_t timeBetweenSends = 40;
         int64_t nextSendTime = timeBetweenSends;
 
-        if (action.type == ActionType::Delay) {
+        if (action.type == ActionType::Delay || action.type == ActionType::ClickButton) {
             auto start = std::chrono::steady_clock::now();
             const int spinThresholdMs = 20; // last few ms done with busy loop for precision
 
@@ -92,6 +100,14 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
             OnEncounterIncrement(action.encounterIncrement);
         } else {
             controller->SendAction(action);
+        }
+
+        //Send release part of click
+        if (action.type == ActionType::ClickButton) {
+            MacroAction tempAction = MacroAction();
+            tempAction.type = ActionType::ReleaseButton;
+            tempAction.button = action.button;
+            controller->SendAction(tempAction);
         }
     }
 

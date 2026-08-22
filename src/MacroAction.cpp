@@ -28,6 +28,7 @@ wxString ButtonToString(ControllerButton button) {
 //Helper for Serialize()
 wxString ActionTypeToString(ActionType t) {
     switch (t) {
+        case ActionType::ClickButton: return "ClickButton";
         case ActionType::PressButton: return "PressButton";
         case ActionType::ReleaseButton: return "ReleaseButton";
         case ActionType::MoveLeftJoystick: return "MoveLeftJoystick";
@@ -40,6 +41,7 @@ wxString ActionTypeToString(ActionType t) {
 }
 //Helper for Deserialize()
 ActionType StringToActionType(const wxString& s) {
+    if (s == "ClickButton") return ActionType::ClickButton;
     if (s == "PressButton") return ActionType::PressButton;
     if (s == "ReleaseButton") return ActionType::ReleaseButton;
     if (s == "MoveLeftJoystick") return ActionType::MoveLeftJoystick;
@@ -52,6 +54,7 @@ ActionType StringToActionType(const wxString& s) {
 
 wxString ActionTypeToChoiceLabel(ActionType type) {
     switch (type) {
+        case ActionType::ClickButton: return "Click Button";
         case ActionType::PressButton: return "Press Button";
         case ActionType::ReleaseButton: return "Release Button";
         case ActionType::MoveLeftJoystick: return "Move Left Joystick";
@@ -64,6 +67,7 @@ wxString ActionTypeToChoiceLabel(ActionType type) {
 }
 
 ActionType ChoiceLabelToActionType(const wxString& label) {
+    if (label == "Click Button") return ActionType::ClickButton;
     if (label == "Press Button") return ActionType::PressButton;
     if (label == "Release Button") return ActionType::ReleaseButton;
     if (label == "Move Left Joystick") return ActionType::MoveLeftJoystick;
@@ -76,6 +80,8 @@ ActionType ChoiceLabelToActionType(const wxString& label) {
 
 wxString MacroAction::ToDisplayString() const {
     switch (type) {
+        case ActionType::ClickButton:
+            return "Click " + ButtonToString(button);
         case ActionType::PressButton:
             return "Press " + ButtonToString(button);
         case ActionType::ReleaseButton:
@@ -100,6 +106,7 @@ nlohmann::json MacroAction::ToJson() const {
     j["type"] = ActionTypeToString(type).ToStdString();
 
     switch (type) {
+        case ActionType::ClickButton:
         case ActionType::PressButton:
         case ActionType::ReleaseButton:
             j["button"] = (int)button;
@@ -134,7 +141,7 @@ MacroAction MacroAction::FromJson(const nlohmann::json& j) {
     a.leftJoystickY = j.value("leftJoystickY", 0);
     a.rightJoystickX = j.value("rightJoystickX", 0);
     a.rightJoystickY = j.value("rightJoystickY", 0);
-    a.delayMs = j.value("delayMs", 0);
-    a.encounterIncrement = j.value("encounterIncrement", 0);
+    a.delayMs = j.value("delayMs", 50);
+    a.encounterIncrement = j.value("encounterIncrement", 1);
     return a;
 }
