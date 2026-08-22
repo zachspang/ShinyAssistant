@@ -65,21 +65,20 @@ void VideoStream::StartCapture(int deviceIndex) {
             bool readOk = cap.read(tempFrame);
             if (!readOk || tempFrame.empty()) continue;
 
-            // Measure actual time since the previous accepted frame
-            auto now = std::chrono::steady_clock::now();
-            double deltaSec = std::chrono::duration<double>(now - lastFpsTime).count();
-            lastFpsTime = now;
-            if (deltaSec > 0.0) {
-                double instantFps = 1.0 / deltaSec;
-                currentFps = (currentFps == 0.0) ? instantFps : (currentFps * 0.9 + instantFps * 0.1);
-            }
+            // // Measure actual time since the previous accepted frame
+            // auto now = std::chrono::steady_clock::now();
+            // double deltaSec = std::chrono::duration<double>(now - lastFpsTime).count();
+            // lastFpsTime = now;
+            // if (deltaSec > 0.0) {
+            //     double instantFps = 1.0 / deltaSec;
+            //     currentFps = (currentFps == 0.0) ? instantFps : (currentFps * 0.9 + instantFps * 0.1);
+            // }
+            // cv::putText(tempFrame, cv::format("FPS: %.1f", currentFps), cv::Point(10, 50), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 3);
 
             //Draw detection rectangle
             cv::Rect rect(m_rectX, m_rectY, m_rectW, m_rectH);
             rect = rect & cv::Rect(0, 0, tempFrame.cols, tempFrame.rows);
             cv::rectangle(tempFrame, rect, cv::Scalar(0,255,0), 4);
-
-            cv::putText(tempFrame, cv::format("FPS: %.1f", currentFps), cv::Point(10, 50), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 3);
 
             {
                 std::lock_guard<std::mutex> lock(m_frameMutex);
