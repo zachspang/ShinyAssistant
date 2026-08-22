@@ -10,6 +10,7 @@ enum class ActionType {
     MoveLeftJoystick,
     MoveRightJoystick,
     Delay,
+    RandomDelay,
     CheckForShiny,
     AddToEncounterNumber,
     Invalid

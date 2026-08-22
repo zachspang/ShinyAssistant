@@ -34,11 +34,13 @@ wxString ActionTypeToString(ActionType t) {
         case ActionType::MoveLeftJoystick: return "MoveLeftJoystick";
         case ActionType::MoveRightJoystick: return "MoveRightJoystick";
         case ActionType::Delay: return "Delay";
+        case ActionType::RandomDelay: return "RandomDelay";
         case ActionType::CheckForShiny: return "CheckForShiny";
         case ActionType::AddToEncounterNumber: return "AddToEncounterNumber";
         default: return "Invalid";
     }
 }
+
 //Helper for Deserialize()
 ActionType StringToActionType(const wxString& s) {
     if (s == "ClickButton") return ActionType::ClickButton;
@@ -47,6 +49,7 @@ ActionType StringToActionType(const wxString& s) {
     if (s == "MoveLeftJoystick") return ActionType::MoveLeftJoystick;
     if (s == "MoveRightJoystick") return ActionType::MoveRightJoystick;
     if (s == "Delay") return ActionType::Delay;
+    if (s == "RandomDelay") return ActionType::RandomDelay;
     if (s == "CheckForShiny") return ActionType::CheckForShiny;
     if (s == "AddToEncounterNumber") return ActionType::AddToEncounterNumber;
     return ActionType::Invalid;
@@ -60,6 +63,7 @@ wxString ActionTypeToChoiceLabel(ActionType type) {
         case ActionType::MoveLeftJoystick: return "Move Left Joystick";
         case ActionType::MoveRightJoystick: return "Move Right Joystick";
         case ActionType::Delay: return "Delay";
+        case ActionType::RandomDelay: return "Random Delay";
         case ActionType::CheckForShiny: return "Check For Shiny";
         case ActionType::AddToEncounterNumber: return "Add to encounter number";
         default: return wxEmptyString;
@@ -73,6 +77,7 @@ ActionType ChoiceLabelToActionType(const wxString& label) {
     if (label == "Move Left Joystick") return ActionType::MoveLeftJoystick;
     if (label == "Move Right Joystick") return ActionType::MoveRightJoystick;
     if (label == "Delay") return ActionType::Delay;
+    if (label == "Random Delay") return ActionType::RandomDelay;
     if (label == "Check For Shiny") return ActionType::CheckForShiny;
     if (label == "Add to encounter number") return ActionType::AddToEncounterNumber;
     return ActionType::Invalid;
@@ -92,6 +97,8 @@ wxString MacroAction::ToDisplayString() const {
             return wxString::Format("Move Right Joystick (%d, %d)", rightJoystickX, rightJoystickY);
         case ActionType::Delay:
             return wxString::Format("Delay %dms", delayMs);
+        case ActionType::RandomDelay:
+            return wxString::Format("Random Delay (0-%dms)", delayMs);
         case ActionType::CheckForShiny:
             return "Check For Shiny";
         case ActionType::AddToEncounterNumber:
@@ -120,6 +127,7 @@ nlohmann::json MacroAction::ToJson() const {
             j["rightJoystickY"] = rightJoystickY;
             break;
         case ActionType::Delay:
+        case ActionType::RandomDelay:
             j["delayMs"] = delayMs;
             break;
         case ActionType::AddToEncounterNumber:

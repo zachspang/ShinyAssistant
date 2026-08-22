@@ -8,6 +8,7 @@
 #include <wx/utils.h>
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <random>
 
 Macro::Macro(const wxString& name) {
     m_name = name;
@@ -57,7 +58,15 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
         int64_t timeBetweenSends = 40;
         int64_t nextSendTime = timeBetweenSends;
 
-        if (action.type == ActionType::Delay || action.type == ActionType::ClickButton) {
+        if (action.type == ActionType::Delay || action.type == ActionType::RandomDelay || action.type == ActionType::ClickButton) {
+            int targetDelayMs = action.delayMs;
+            if (action.type == ActionType::RandomDelay) {
+                static thread_local std::mt19937 rng(std::random_device{}());
+                std::uniform_int_distribution<int> dist(0, std::max(0, action.delayMs));
+                targetDelayMs = dist(rng);
+                Log(wxString::Format("Rand delay: %d", targetDelayMs));
+            }
+
             auto start = std::chrono::steady_clock::now();
             const int spinThresholdMs = 20; // last few ms done with busy loop for precision
 

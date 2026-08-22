@@ -26,6 +26,7 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent, MacroLibrary* library, cons
     actionList.Add("Move Left Joystick");
     actionList.Add("Move Right Joystick");
     actionList.Add("Delay");
+    actionList.Add("Random Delay");
     actionList.Add("Check For Shiny");
     actionList.Add("Add to encounter number");
 
@@ -186,14 +187,16 @@ void MacroEditorFrame::PopulateActionSettings(wxWindow* settingsParent, const wx
             m_actionSettingSizer->Add(ySpin, wxSizerFlags().Center().Border(wxLEFT, 5));
             break;
         }
-        case ActionType::Delay: {
-            wxStaticText* delayLabel = new wxStaticText(settingsParent, wxID_ANY, "Delay: ");
+        case ActionType::Delay:
+        case ActionType::RandomDelay: {
+            wxString delayLabel = (type == ActionType::RandomDelay) ? "Max Delay: " : "Delay: ";
+            wxStaticText* delayLabelCtrl = new wxStaticText(settingsParent, wxID_ANY, delayLabel);
             wxSpinCtrl* delaySpin = new wxSpinCtrl(settingsParent, wxID_ANY, wxEmptyString,
                 wxDefaultPosition, wxSize(90, -1), wxSP_ARROW_KEYS, 0, 100000, m_currentAction.delayMs);
             delaySpin->Bind(wxEVT_SPINCTRL, &MacroEditorFrame::OnDelayChanged, this);
             wxStaticText* msLabel = new wxStaticText(settingsParent, wxID_ANY, " ms");
 
-            m_actionSettingSizer->Add(delayLabel, wxSizerFlags().Center());
+            m_actionSettingSizer->Add(delayLabelCtrl, wxSizerFlags().Center());
             m_actionSettingSizer->Add(delaySpin, wxSizerFlags().Center().Border(wxLEFT, 5));
             m_actionSettingSizer->Add(msLabel, wxSizerFlags().Center());
             break;
