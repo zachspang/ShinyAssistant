@@ -4,6 +4,7 @@
 #include "MacroEditorFrame.h"
 #include "VirtualXInput.h"
 #include "VirtualRosalina.h"
+#include "VirtualBotbase.h"
 #include "Logging.h"
 #include "WebhookNotifier.h"
 #include <wx/wx.h>
@@ -109,12 +110,11 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     vcCheckBox->Bind(wxEVT_CHECKBOX, &MainFrame::OnVCToggle, this);
 
     wxArrayString controllerTypes;
-    controllerTypes.Add("XInput");
     controllerTypes.Add("sys-botbase ");
     controllerTypes.Add("Rosalina IR");
+    controllerTypes.Add("XInput");
     m_controllerTypeRadioBox = new wxRadioBox(rightPanel,wxID_ANY, "Controller Mode", wxDefaultPosition, wxDefaultSize, controllerTypes);
     m_controllerTypeRadioBox->Bind(wxEVT_RADIOBOX, &MainFrame::OnVCTypeChange, this);
-    m_controllerTypeRadioBox->Enable(false);
 
     wxBoxSizer* deviceIPSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* deviceIPLabel = new wxStaticText(rightPanel, wxID_ANY, "Device IP: ");
@@ -125,7 +125,6 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     deviceIPSizer->Add(m_deviceIPCtrl, wxSizerFlags().CenterVertical());
     deviceIPSizer->Add(m_deviceIPConfirm, wxSizerFlags().CenterVertical().Border(wxALL,5));
     m_deviceIPConfirm->Bind(wxEVT_BUTTON, &MainFrame::OnIPConfirm, this);
-    m_deviceIPConfirm->Enable(false);
 
     wxStaticBoxSizer* webhookSizer = new wxStaticBoxSizer(wxVERTICAL, rightPanel, "Discord Alert");
 
@@ -348,6 +347,11 @@ void MainFrame::SyncControllerState() {
                     m_controller = new VirtualXInput();
                 }
                 break;
+            case ControllerType::sysbotbase:
+                if (m_controller == nullptr) {
+                    m_controller = new VirtualBotbase();
+                }
+                break;
             case ControllerType::rosalinaIR:
                 if (m_controller == nullptr) {
                     m_controller = new VirtualRosalina();
@@ -430,9 +434,8 @@ void MainFrame::OnIPConfirm(wxCommandEvent& evt){
 
     if (m_controllerType == ControllerType::rosalinaIR) {
         port = "4950";
-    } else {
-        //TODO: change to sysbotbase port
-        port = "1234";
+    } else if (m_controllerType == ControllerType::sysbotbase){
+        port = "6000";
     }
 
     Log(wxString::Format("Attempting to connect to %s:%s", m_deviceIP, port));
@@ -444,7 +447,11 @@ void MainFrame::OnIPConfirm(wxCommandEvent& evt){
             rosalinaPtr->Connect(m_deviceIP);
         }
     } else if (m_controllerType == ControllerType::sysbotbase){
-        //TODO: connect to sysbotbase
+        VirtualBotbase* botbasePtr = dynamic_cast<VirtualBotbase*>(m_controller);
+
+        if (botbasePtr != nullptr) {
+            botbasePtr->Connect(m_deviceIP);
+        }
     }
 
 }

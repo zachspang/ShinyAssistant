@@ -15,9 +15,9 @@ public:
     MainFrame(const wxString& title);
 
     enum ControllerType {
-        xinput = 0,
-        sysbotbase = 1,
-        rosalinaIR = 2
+        sysbotbase = 0,
+        rosalinaIR = 1,
+        xinput = 2,
     };
 private:
     //Reference to a VideoStream object handling the webcam
@@ -42,7 +42,7 @@ private:
     wxRadioBox* m_controllerTypeRadioBox;
 
     //Selection from controllerTypeRadioBox
-    ControllerType m_controllerType = xinput;
+    ControllerType m_controllerType = sysbotbase;
 
     VirtualController* m_controller = nullptr;
 
