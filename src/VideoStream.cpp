@@ -121,27 +121,51 @@ double calcSimilarity(const cv::Mat& img1, const cv::Mat& img2) {
     cv::Mat gray1, gray2;
     cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
     cvtColor(img2, gray2, cv::COLOR_BGR2GRAY);
- 
+
     cv::Mat f1, f2;
     gray1.convertTo(f1, CV_32F);
     gray2.convertTo(f2, CV_32F);
- 
+
     // Hanning window improves phase correlation accuracy
     cv::Mat hann;
     cv::createHanningWindow(hann, f1.size(), CV_32F);
- 
+
     cv::Point2d shift = cv::phaseCorrelate(f1, f2, hann);
- 
+
     cv::Mat translation = (cv::Mat_<double>(2, 3) << 1, 0, shift.x, 0, 1, shift.y);
-    cv::Mat aligned;
-    cv::warpAffine(gray2, aligned, translation, gray2.size());
- 
-    cv::Mat result;
-    cv::matchTemplate(gray1, aligned, result, cv::TM_CCOEFF_NORMED);
-    double minVal, maxVal;
-    cv::minMaxLoc(result, &minVal, &maxVal);
- 
-    return std::max(0.0, std::min(1.0, (maxVal + 1.0) / 2.0)); // TM_CCOEFF_NORMED range is [-1,1]
+
+    // Warp the color image instead of gray so we dont lose color info before comparing
+    cv::Mat alignedColor;
+    cv::warpAffine(img2, alignedColor, translation, img2.size());
+
+    // Compare each color channel separately
+    std::vector<cv::Mat> ch1, ch2;
+    cv::split(img1, ch1);
+    cv::split(alignedColor, ch2);
+
+    double structScore = 0.0;
+    for (int i = 0; i < 3; i++) {
+        cv::Mat f1c, f2c, result;
+        ch1[i].convertTo(f1c, CV_32F);
+        ch2[i].convertTo(f2c, CV_32F);
+        cv::matchTemplate(f1c, f2c, result, cv::TM_CCOEFF_NORMED);
+        double minVal, maxVal;
+        cv::minMaxLoc(result, &minVal, &maxVal);
+        structScore += std::max(0.0, std::min(1.0, (maxVal + 1.0) / 2.0)); // TM_CCOEFF_NORMED range is [-1,1]
+    }
+    structScore /= 3.0;
+
+    // Direct pixel-wise color diff penalty
+    cv::Mat diff;
+    cv::absdiff(img1, alignedColor, diff);
+    cv::Scalar meanDiff = cv::mean(diff); // per-channel mean abs diff, 0-255
+    double avgColorDiff = (meanDiff[0] + meanDiff[1] + meanDiff[2]) / 3.0;
+    double colorScore = 1.0 - (avgColorDiff / 255.0);
+
+    // Take the min so a big color change can't be masked by good structural alignment elsewhere in the image
+    double finalScore = std::min(structScore, colorScore);
+
+    return std::max(0.0, std::min(1.0, finalScore));
 }
 
 bool VideoStream::checkShiny(const std::atomic<bool>& keepRunning) {
@@ -168,7 +192,7 @@ bool VideoStream::checkShiny(const std::atomic<bool>& keepRunning) {
     double similarity = calcSimilarity(m_prevDetectionFrame, croppedFrame);
     Log(wxString::Format("Similarity Score: %.2f", similarity));
 
-    if (m_avgSimilarity - similarity > 0.17){
+    if (similarity < 0.9){
         Log(wxString::Format("Average Score: %.2f", m_avgSimilarity));
         Log("!!! SHINY DETECTED !!!");
         return true;
