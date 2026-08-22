@@ -81,7 +81,7 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
                     nextSendTime += timeBetweenSends;
                 }
 
-                long remaining = action.delayMs - elapsed;
+                long remaining = targetDelayMs - elapsed;
 
                 if (remaining <= spinThresholdMs) break;
 
@@ -98,7 +98,7 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
             while (keepRunning) {
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::steady_clock::now() - start).count();
-                if (elapsed >= action.delayMs) break;
+                if (elapsed >= targetDelayMs) break;
             }
         } else if (action.type == ActionType::CheckForShiny) {
             if (videoStream && videoStream->checkShiny(keepRunning)) {
