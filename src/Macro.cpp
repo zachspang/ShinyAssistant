@@ -40,6 +40,7 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
     }
 
     for (const auto& action : m_actions) {
+        Log(action.ToDisplayString());
         if (!keepRunning) {
             controller->Reset();
             return true;
