@@ -149,7 +149,7 @@ MacroAction MacroAction::FromJson(const nlohmann::json& j) {
     a.leftJoystickY = j.value("leftJoystickY", 0);
     a.rightJoystickX = j.value("rightJoystickX", 0);
     a.rightJoystickY = j.value("rightJoystickY", 0);
-    a.delayMs = j.value("delayMs", 50);
+    a.delayMs = j.value("delayMs", 100);
     a.encounterIncrement = j.value("encounterIncrement", 1);
     return a;
 }

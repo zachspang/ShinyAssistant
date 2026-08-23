@@ -45,7 +45,7 @@ struct MacroAction {
     int rightJoystickY = 0;   // -100..100
 
     //Delay
-    int delayMs = 50;     // 0..100000
+    int delayMs = 100;     // 0..100000
 
     //Number to increment encounter counter by
     int encounterIncrement = 1; // 0..1000

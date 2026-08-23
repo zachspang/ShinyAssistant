@@ -109,10 +109,19 @@ void VirtualBotbase::Reset() {
 
 void VirtualBotbase::OnSocketEvent(wxSocketEvent& event) {
     switch (event.GetSocketEvent()) {
-        case wxSOCKET_CONNECTION:
+        case wxSOCKET_CONNECTION: {
             Log("Connected successfully.");
             m_isConnected = true;
+
+            // Disable Nagle's algorithm. This might help with rare missed inputs which are 
+            // really a press and release getting sent too close together
+            int flag = 1;
+            bool ok = socket->SetOption(IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+            if (!ok) {
+                Log("Warning: failed to set TCP_NODELAY");
+            }
             break;
+        }
 
         case wxSOCKET_LOST:
             Log("Connection lost or failed.");
