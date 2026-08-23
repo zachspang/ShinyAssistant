@@ -130,14 +130,14 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     wxBoxSizer* webhookUrlRow = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* webhookUrlLabel = new wxStaticText(rightPanel, wxID_ANY, "Webhook URL: ");
-    m_webhookUrlCtrl = new wxTextCtrl(rightPanel, wxID_ANY, m_settings.webhookUrl, wxDefaultPosition, wxSize(200, -1));
+    m_webhookUrlCtrl = new wxTextCtrl(rightPanel, wxID_ANY, m_settings.webhookUrl, wxDefaultPosition, wxSize(200, -1), wxTE_PASSWORD);
     m_webhookUrlCtrl->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { SaveSettings(); });
     webhookUrlRow->Add(webhookUrlLabel, wxSizerFlags().CenterVertical());
     webhookUrlRow->Add(m_webhookUrlCtrl, wxSizerFlags().CenterVertical());
 
     wxBoxSizer* webhookUserRow = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* webhookUserLabel = new wxStaticText(rightPanel, wxID_ANY, "User ID: ");
-    m_webhookUsernameCtrl = new wxTextCtrl(rightPanel, wxID_ANY, m_settings.pingName, wxDefaultPosition, wxSize(200, -1));
+    m_webhookUsernameCtrl = new wxTextCtrl(rightPanel, wxID_ANY, m_settings.pingName, wxDefaultPosition, wxSize(200, -1), wxTE_PASSWORD);
     m_webhookUsernameCtrl->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { SaveSettings(); });
     webhookUserRow->Add(webhookUserLabel, wxSizerFlags().CenterVertical());
     webhookUserRow->Add(m_webhookUsernameCtrl, wxSizerFlags().CenterVertical());
