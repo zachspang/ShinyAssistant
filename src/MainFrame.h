@@ -107,6 +107,14 @@ private:
     //Path to the settings file
     wxString m_settingsFilePath;
 
+    //Tracks which macro's per-macro settings are currently loaded into the encounter/detection widgets,
+    //so SaveSettings() knows which map entry to update
+    int m_lastSettingsMacroIndex = -1;
+
+    //Loads macroIndex's saved encounter value + detection bounds (or defaults)
+    //into m_encounterValue and m_videoStream's rect. Updates m_lastSettingsMacroIndex.
+    void LoadMacroSettings(int macroIndex);
+
     //Writes current widget values into m_settings and saves to disk. Call after any setting-relevant change.
     void SaveSettings();
 
