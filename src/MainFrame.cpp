@@ -109,7 +109,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     vcCheckBox->Bind(wxEVT_CHECKBOX, &MainFrame::OnVCToggle, this);
 
     wxArrayString controllerTypes;
-    controllerTypes.Add("sys-botbase ");
+    controllerTypes.Add("sys-botbase   ");
     controllerTypes.Add("Rosalina IR");
     controllerTypes.Add("XInput");
     m_controllerTypeRadioBox = new wxRadioBox(rightPanel,wxID_ANY, "Controller Mode", wxDefaultPosition, wxDefaultSize, controllerTypes);
