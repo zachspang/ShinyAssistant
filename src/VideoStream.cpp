@@ -86,6 +86,29 @@ void VideoStream::StartCapture(int deviceIndex) {
                 m_textBoxRect = rect;
             }
 
+            // Comparing frame to the previous frame to see if a big change happened
+            if (m_checkingChange) {
+                cv::Mat prevFrameCopy;
+                {
+                    std::lock_guard<std::mutex> lock(m_frameMutex);
+                    prevFrameCopy = m_prevFrame;
+                }
+
+                if (prevFrameCopy.empty()) {
+                    // First frame since checking started, just set m_prevFrame
+                    std::lock_guard<std::mutex> lock(m_frameMutex);
+                    m_prevFrame = tempFrame.clone();
+                } else {
+                    double similarity = CalcChange(prevFrameCopy, tempFrame);
+                    Log(wxString::Format("Sim: %f", similarity));
+                    if (similarity < 0.85) {
+                        m_changeDetected = true;
+                    }
+                    std::lock_guard<std::mutex> lock(m_frameMutex);
+                    m_prevFrame = tempFrame.clone();
+                }
+            }
+
             std::this_thread::sleep_for(std::chrono::milliseconds(30));
         }
 
@@ -117,7 +140,7 @@ wxImage VideoStream::GetWxImageFromFrame(){
 };
 
 // Finds the shift between images, realign them then compare them
-double calcSimilarity(const cv::Mat& img1, const cv::Mat& img2) {
+double VideoStream::CalcSimilarity(const cv::Mat& img1, const cv::Mat& img2) {
     cv::Mat gray1, gray2;
     cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
     cvtColor(img2, gray2, cv::COLOR_BGR2GRAY);
@@ -168,7 +191,39 @@ double calcSimilarity(const cv::Mat& img1, const cv::Mat& img2) {
     return std::max(0.0, std::min(1.0, finalScore));
 }
 
-bool VideoStream::checkShiny(const std::atomic<bool>& keepRunning) {
+// A lightweight change detector compared to CalcSimilarity
+double VideoStream::CalcChange(const cv::Mat& img1, const cv::Mat& img2) {
+    // Smaller working resoulution
+    constexpr int kWorkSize = 160;
+
+    cv::Mat g1, g2;
+    cv::cvtColor(img1, g1, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(img2, g2, cv::COLOR_BGR2GRAY);
+    cv::resize(g1, g1, cv::Size(kWorkSize, kWorkSize), 0, 0, cv::INTER_AREA);
+    cv::resize(g2, g2, cv::Size(kWorkSize, kWorkSize), 0, 0, cv::INTER_AREA);
+
+    // Color/brightness diff
+    cv::Mat diff;
+    cv::absdiff(g1, g2, diff);
+    double meanDiff = cv::mean(diff)[0];
+    double colorScore = 1.0 - (meanDiff / 255.0);
+
+    // Texture/variance collapse: a flash (bright or dark from encounter starting) flattens the frame
+    cv::Scalar mean1, stddev1, mean2, stddev2;
+    cv::meanStdDev(g1, mean1, stddev1);
+    cv::meanStdDev(g2, mean2, stddev2);
+    double std1 = stddev1[0], std2 = stddev2[0];
+
+    // Ratio of the smaller std to the larger; near 1.0 = similar texture level,
+    // near 0.0 = one frame lost (or gained) most of its texture
+    double textureScore = (std::max(std1, std2) < 1e-3)
+        ? 1.0 // both frames are already flat; nothing to compare, don't penalize
+        : std::min(std1, std2) / std::max(std1, std2);
+
+    return std::min(colorScore, textureScore);
+}
+
+bool VideoStream::CheckShiny(const std::atomic<bool>& keepRunning) {
     cv::Mat croppedFrame;
     {
         std::lock_guard<std::mutex> lock(m_frameMutex);
@@ -189,7 +244,7 @@ bool VideoStream::checkShiny(const std::atomic<bool>& keepRunning) {
         return false;
     }
 
-    double similarity = calcSimilarity(m_prevDetectionFrame, croppedFrame);
+    double similarity = CalcSimilarity(m_prevDetectionFrame, croppedFrame);
     Log(wxString::Format("Similarity Score: %.2f", similarity));
 
     if (similarity < 0.9){
@@ -206,7 +261,36 @@ bool VideoStream::checkShiny(const std::atomic<bool>& keepRunning) {
     return false;
 }
 
-void VideoStream::resetDetectionFrame() {
+bool VideoStream::CheckChange() {
+    // First call, start comparing frames in the cap loop
+    if (!m_checkingChange.exchange(true)) {
+        m_changeDetected = false;
+        std::lock_guard<std::mutex> lock(m_frameMutex);
+        m_prevFrame = cv::Mat();
+        return false;
+    }
+
+    // Already watching, check if a big change was detected
+    if (m_changeDetected.exchange(false)) {
+        m_checkingChange = false;
+        std::lock_guard<std::mutex> lock(m_frameMutex);
+        m_prevFrame = cv::Mat();
+        Log("Big change between frames detected");
+        return true;
+    }
+
+    return false;
+}
+
+void VideoStream::StopCheckingChange() {
+    if (m_checkingChange.exchange(false)) {
+        m_changeDetected = false;
+        std::lock_guard<std::mutex> lock(m_frameMutex);
+        m_prevFrame = cv::Mat();
+    }
+}
+
+void VideoStream::ResetDetectionFrame() {
     m_prevDetectionFrame.release();
 }
 
@@ -223,6 +307,7 @@ void VideoStream::SwitchCamera(int deviceIndex) {
         // a stale frame from the previous camera while the new one warms up.
         std::lock_guard<std::mutex> lock(m_frameMutex);
         m_frame = cv::Mat();
+        m_prevFrame = cv::Mat();
     }
 
     StartCapture(deviceIndex);

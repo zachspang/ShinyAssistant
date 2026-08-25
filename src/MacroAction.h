@@ -12,6 +12,7 @@ enum class ActionType {
     Delay,
     RandomDelay,
     CheckForShiny,
+    RELoop,
     AddToEncounterNumber,
     Invalid
 };

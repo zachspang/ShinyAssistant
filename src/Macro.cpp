@@ -40,7 +40,9 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
         shouldSendDuringDelay = true;
     }
 
-    for (const auto& action : m_actions) {
+    for (size_t i = 0; i < m_actions.size(); i++) {
+        const auto& action = m_actions.at(i);
+
         Log(action.ToDisplayString());
         if (!keepRunning) {
             controller->Reset();
@@ -101,10 +103,15 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
                 if (elapsed >= targetDelayMs) break;
             }
         } else if (action.type == ActionType::CheckForShiny) {
-            if (videoStream && videoStream->checkShiny(keepRunning)) {
+            if (videoStream && videoStream->CheckShiny(keepRunning)) {
                 OnShinyDetected(videoStream->GetWxImageFromFrame());
                 controller->Reset();
                 return true;
+            }
+        } else if (action.type == ActionType::RELoop) {
+            if (videoStream && !videoStream->CheckChange()) {
+                //Reset macro to start if not in encounter
+                i = -1;
             }
         } else if (action.type == ActionType::AddToEncounterNumber) {
             OnEncounterIncrement(action.encounterIncrement);

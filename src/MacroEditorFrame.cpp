@@ -28,6 +28,7 @@ MacroEditorFrame::MacroEditorFrame(wxWindow* parent, MacroLibrary* library, cons
     actionList.Add("Delay");
     actionList.Add("Random Delay");
     actionList.Add("Check For Shiny");
+    actionList.Add("Random Encounter Loop");
     actionList.Add("Add to encounter number");
 
     wxBoxSizer* actionChoiceSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -202,7 +203,8 @@ void MacroEditorFrame::PopulateActionSettings(wxWindow* settingsParent, const wx
             break;
         }
         case ActionType::CheckForShiny:
-            // No settings for this action.
+        case ActionType::RELoop:
+            // No settings for these actions.
             break;
         case ActionType::AddToEncounterNumber: {
             wxStaticText* incLabel = new wxStaticText(settingsParent, wxID_ANY, "Amount: ");

@@ -343,7 +343,7 @@ void MainFrame::StartMacroThread() {
     };
 
     //Reset the previous detection frame so the first detection on this run is considered the baseline
-    m_videoStream->resetDetectionFrame();
+    m_videoStream->ResetDetectionFrame();
 
     //Macro loop thread, keeps looping macro until m_macroRunning = false
     m_macroThread = std::thread([this, macroCopy, OnEncounterIncrementWrapper, OnShinyDetectedWrapper]() mutable {
@@ -363,6 +363,7 @@ void MainFrame::StartMacroThread() {
 }
 
 void MainFrame::StopMacroThread() {
+    m_videoStream->StopCheckingChange();
     m_macroToggleButton->SetLabel("Start Macro");
     m_macroRunning = false;
     if (m_macroThread.joinable()) m_macroThread.join(); //wait for it to actually stop
