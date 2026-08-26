@@ -100,7 +100,7 @@ void VideoStream::StartCapture(int deviceIndex) {
                     m_prevFrame = tempFrame.clone();
                 } else {
                     double similarity = CalcChange(prevFrameCopy, tempFrame);
-                    Log(wxString::Format("Sim: %f", similarity));
+                    //Log(wxString::Format("Sim: %f", similarity));
                     if (similarity < 0.85) {
                         m_changeDetected = true;
                     }

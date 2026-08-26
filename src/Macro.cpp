@@ -40,6 +40,9 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
         shouldSendDuringDelay = true;
     }
 
+    int jumpIndex = 0;
+    bool breakRELoop = false;
+
     for (size_t i = 0; i < m_actions.size(); i++) {
         const auto& action = m_actions.at(i);
 
@@ -47,6 +50,10 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
         if (!keepRunning) {
             controller->Reset();
             return true;
+        }
+
+        if (videoStream && videoStream->IsCheckingChange()) {
+            breakRELoop = videoStream->CheckChange();
         }
 
         //Send press part of click
@@ -109,8 +116,10 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
                 return true;
             }
         } else if (action.type == ActionType::RELoop) {
-            if (videoStream && !videoStream->CheckChange()) {
-                //Reset macro to start if not in encounter
+            jumpIndex = i;
+            breakRELoop = videoStream->CheckChange();
+            if (!breakRELoop) {
+                // Reset macro to start if RELoop should keep looping
                 i = -1;
             }
         } else if (action.type == ActionType::AddToEncounterNumber) {
@@ -125,6 +134,13 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
             tempAction.type = ActionType::ReleaseButton;
             tempAction.button = action.button;
             controller->SendAction(tempAction);
+        }
+
+        // Jump to action after RELoop
+        if (breakRELoop) {
+            controller->Reset();
+            i = jumpIndex;
+            breakRELoop = false;
         }
     }
 

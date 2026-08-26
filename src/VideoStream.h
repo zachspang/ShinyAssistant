@@ -17,7 +17,8 @@ public:
     int GetWebcamCount(); // Counts number of webcams user has connected. Returns a default value of 2 with debugger attached
     wxImage GetWxImageFromFrame(); // Convert frame to wxImage
     bool CheckShiny(const std::atomic<bool>& keepRunning); // Compares the current detection to the last, if it is very different assume it is a shiny
-    bool CheckChange(); // Compares to the previous frame, returns true if its very different such as going from standing in grass to a random encounter
+    bool CheckChange(); // If change detection loop is running this returns true if a change has been detected, otherwise it starts the change detection
+    bool IsCheckingChange() const { return m_checkingChange; }
     void StopCheckingChange();
     void ResetDetectionFrame();
     std::atomic<int> m_rectX = 78;
