@@ -94,7 +94,9 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
 
                 if (remaining <= spinThresholdMs) break;
 
-                breakRELoop = videoStream->CheckChange();
+                if (videoStream && videoStream->IsCheckingChange()) {
+                    breakRELoop = videoStream->CheckChange();
+                }
                 if (breakRELoop) break;
 
                 long sleepChunkMs = std::min<long>(remaining - spinThresholdMs, 5);
