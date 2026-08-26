@@ -94,6 +94,9 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
 
                 if (remaining <= spinThresholdMs) break;
 
+                breakRELoop = videoStream->CheckChange();
+                if (breakRELoop) break;
+
                 long sleepChunkMs = std::min<long>(remaining - spinThresholdMs, 5);
                 std::this_thread::sleep_for(std::chrono::milliseconds(sleepChunkMs));
             }
@@ -104,7 +107,7 @@ bool Macro::Play(const std::atomic<bool>& keepRunning, VirtualController* &contr
             }
 
             // Final precision spin for the last few ms
-            while (keepRunning) {
+            while (keepRunning && !breakRELoop) {
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::steady_clock::now() - start).count();
                 if (elapsed >= targetDelayMs) break;
