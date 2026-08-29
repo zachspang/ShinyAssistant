@@ -1,4 +1,4 @@
-# Shiny Assistant
+# Shiny Assistant <img src="shinyassistant.ico" alt="Icon" width="32" height="32">
 
 A tool for automating shiny hunting in Pokemon games. 
 # Download
