@@ -1,8 +1,5 @@
 {
     "cmake.generator": "Ninja",
-    "cmake.configureSettings": {
-        "CMAKE_BUILD_TYPE": "Debug"
-    },
     "cmake.environment": {
         "PATH": "C:\\msys64\\mingw64\\bin;${env:PATH}"
     }

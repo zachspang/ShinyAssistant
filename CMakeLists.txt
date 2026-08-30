@@ -14,8 +14,8 @@ set(wxWidgets_ROOT_DIR "C:/msys64/mingw64")
 find_package(wxWidgets REQUIRED COMPONENTS core base net)
 include(${wxWidgets_USE_FILE})
 
-# --- OpenCV (shared MSYS2 install) ---
-set(OpenCV_DIR "C:/msys64/mingw64/lib/cmake/opencv4")
+# --- OpenCV (slim custom build — core/imgproc/videoio only) ---
+set(OpenCV_DIR "C:/opencv-slim/install/x64/mingw/lib")
 find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio)
 
 # --- CURL (shared MSYS2 install) ---
@@ -58,6 +58,15 @@ target_link_libraries(ShinyAssistant PRIVATE
     nlohmann_json::nlohmann_json
     -Wl,--end-group
 )
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_link_options(ShinyAssistant PRIVATE
+        -s
+        -static-libgcc
+        -static-libstdc++
+        -Wl,-Bstatic -lwinpthread -Wl,-Bdynamic
+    )
+endif()
 
 set_target_properties(ShinyAssistant PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}

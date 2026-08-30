@@ -1,0 +1,11 @@
+buildType:
+  default: debug
+  choices:
+    debug:
+      short: Debug
+      long: Full debug info, no optimization
+      buildType: Debug
+    release:
+      short: Release
+      long: Optimized, stripped, no debug info
+      buildType: Release

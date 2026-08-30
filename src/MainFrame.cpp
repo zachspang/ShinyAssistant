@@ -17,6 +17,7 @@
 
 MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxInitAllImageHandlers();
+    SetIcon(wxICON(IDI_ICON1));
 
     //Panels splitting gui into left and right halves
 

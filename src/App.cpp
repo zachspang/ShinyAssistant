@@ -1,6 +1,5 @@
 #include "App.h"
 #include "MainFrame.h"
-#include "VideoStream.h"
 #include <wx/wx.h>
 #include <windows.h>
 #include <curl/curl.h>
