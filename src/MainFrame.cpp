@@ -18,6 +18,7 @@
 MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     wxInitAllImageHandlers();
     SetIcon(wxICON(IDI_ICON1));
+    wxString exeDir = wxFileName(wxStandardPaths::Get().GetExecutablePath()).GetPath();
 
     //Panels splitting gui into left and right halves
 
@@ -38,9 +39,7 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
 
     //Settings are loaded so widget construction below can use them as defaults.
     //This isnt a child of the left panel but it Logs so it has to run after wxLog::SetActiveTarget(new wxLogTextCtrl(m_logCtrl));
-    wxString settingsDir = wxStandardPaths::Get().GetUserDataDir();
-    wxFileName::Mkdir(settingsDir, wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
-    m_settingsFilePath = settingsDir + wxFILE_SEP_PATH + "settings.json";
+    m_settingsFilePath = exeDir + wxFILE_SEP_PATH + "settings.json";
     m_settings.LoadFromFile(m_settingsFilePath); //this fails if no settings saved yet which is ok
 
     m_videoStream = new VideoStream();
@@ -146,14 +145,12 @@ MainFrame::MainFrame(const wxString& title): wxFrame(nullptr, wxID_ANY, title){
     webhookSizer->Add(webhookUserRow, wxSizerFlags().Border(wxALL, 5));
 
     //Macros are all stored in a single file, loaded once here and shared with the editor
-    wxString macroDir = wxStandardPaths::Get().GetUserDataDir();
-    wxFileName::Mkdir(macroDir, wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
-    m_macroFilePath = macroDir + wxFILE_SEP_PATH + "macros.json";
+    m_macroFilePath = exeDir + wxFILE_SEP_PATH + "macros.json";
     m_macroLibrary.LoadFromFile(m_macroFilePath); //this fails if no macros are made which is ok
 
     wxBoxSizer* macroChoiceSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* macroChoiceLabel = new wxStaticText(rightPanel, wxID_ANY, "Selected Macro: ");
-    m_macroChoice = new wxChoice(rightPanel, wxID_ANY, wxDefaultPosition, wxSize(100,-1));
+    m_macroChoice = new wxChoice(rightPanel, wxID_ANY, wxDefaultPosition, wxSize(200,-1));
     macroChoiceSizer->Add(macroChoiceLabel, wxSizerFlags().CenterVertical());
     macroChoiceSizer->Add(m_macroChoice, wxSizerFlags().CenterVertical());
     m_macroChoice->Bind(wxEVT_CHOICE, &MainFrame::OnMacroChange, this);
