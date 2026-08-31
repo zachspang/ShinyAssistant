@@ -9,16 +9,16 @@ set(CMAKE_RC_COMPILER_INIT windres)
 set(CMAKE_RC_COMPILE_OBJECT
     "<CMAKE_RC_COMPILER> <FLAGS> -O coff -o <OBJECT> <SOURCE>")
 
-# --- wxWidgets (shared MSYS2 install) ---
-set(wxWidgets_ROOT_DIR "C:/msys64/mingw64")
-find_package(wxWidgets REQUIRED COMPONENTS core base net)
-include(${wxWidgets_USE_FILE})
+# --- wxWidgets (custom slim build from source — webrequest/curl disabled, sockets kept) ---
+set(wxWidgets_DIR "C:/wx-slim/install/lib/cmake/wxWidgets-3.2" CACHE PATH "" FORCE)
+find_package(wxWidgets CONFIG REQUIRED COMPONENTS core base net)
 
 # --- OpenCV (slim custom build — core/imgproc/videoio only) ---
 set(OpenCV_DIR "C:/opencv-slim/install/x64/mingw/lib")
 find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio)
 
-# --- CURL (shared MSYS2 install) ---
+# --- CURL (statically linked, Schannel TLS, custom slim build from source) ---
+set(CURL_DIR "C:/curl-static/install/lib/cmake/CURL" CACHE PATH "" FORCE)
 find_package(CURL REQUIRED)
 
 # --- nlohmann JSON (shared MSYS2 install) --
@@ -49,14 +49,24 @@ target_include_directories(ShinyAssistant PRIVATE
     ${OpenCV_INCLUDE_DIRS}
 )
 
+# Tell curl's headers we're linking it statically, or we can get
+# unresolved __imp_ symbol errors at link time.
+target_compile_definitions(ShinyAssistant PRIVATE CURL_STATICLIB)
+
 target_link_libraries(ShinyAssistant PRIVATE
     -Wl,--start-group
-    ${wxWidgets_LIBRARIES}
+    wx::core
+    wx::base
+    wx::net
     ${OpenCV_LIBS}
     ViGEmClient
     CURL::libcurl
     nlohmann_json::nlohmann_json
     -Wl,--end-group
+    crypt32
+    secur32
+    ws2_32
+    bcrypt
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")

@@ -53,7 +53,6 @@ bool WebhookNotifier::SendShinyAlert(const wxImage& frame, const wxString& webho
     curl_easy_setopt(curl, CURLOPT_URL, urlUtf8.data());
     curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L);
-    curl_easy_setopt(curl, CURLOPT_CAINFO, "ca-bundle.crt");
 
     CURLcode res = curl_easy_perform(curl);
     bool success = false;
