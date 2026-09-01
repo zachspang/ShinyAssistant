@@ -5,7 +5,9 @@ A tool for automating shiny hunting in Pokemon games.
 
 Currently only supports Windows
 
-[Latest Official Release](https://github.com/zachspang/ShinyAssistant/releases/latest)
+Download the zip from the [latest release](https://github.com/zachspang/ShinyAssistant/releases/latest) and run ShinyAssistant.exe
+
+[ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases) needed for virtual XInput use
 
 Read the [wiki](https://github.com/zachspang/ShinyAssistant/wiki) for info on how the use this program. 
 
