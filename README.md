@@ -9,7 +9,7 @@ Download the zip from the [latest release](https://github.com/zachspang/ShinyAss
 
 [ViGEmBus Driver](https://github.com/nefarius/ViGEmBus/releases) needed for virtual XInput use
 
-Read the [wiki](https://github.com/zachspang/ShinyAssistant/wiki) for info on how the use this program. 
+Read the [wiki](https://github.com/zachspang/ShinyAssistant/wiki/Setup) for info on how the use this program. 
 
 Note: If using Rosalina input redirection on Gen 7 games read [gen7-setup](https://github.com/zachspang/ShinyAssistant/wiki/gen7-setup)
 as they disable wifi breaking input redirection and need a patch to work properly.
@@ -23,5 +23,3 @@ as they disable wifi breaking input redirection and need a patch to work properl
 - Supports random encounters and static hunting
 - Tracker for number of encounters
 
-# Guide
-Check out the [wiki](https://github.com/zachspang/ShinyAssistant/wiki) for information on setting up the application for different types of hunts.
