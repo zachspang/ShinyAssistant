@@ -42,6 +42,8 @@ void VideoStream::StartCapture(int deviceIndex) {
 
     m_captureThread = std::thread([this, deviceIndex]() {
         cv::VideoCapture cap(deviceIndex, cv::CAP_ANY);
+        cap.set(cv::CAP_PROP_FRAME_WIDTH, 854);
+        cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
 
         if (!cap.isOpened()) {
             Log("ERROR: Could not open camera.");
